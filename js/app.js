@@ -88,7 +88,7 @@ function bankMeta(bank) {
             name: "BIDV",
             buy: "Mua chuyển khoản",
             sell: "Bán chuyển khoản",
-            hint: "BIDV: Mua = USD chuyển khoản, Bán = USD bán. Ưu tiên lần 4, chưa có thì lấy lần mới nhất."
+            hint: "BIDV: Mua = USD chuyển khoản, Bán = USD bán. Lấy lần công bố mới nhất trong ngày."
         };
     }
 
@@ -567,21 +567,14 @@ function normalizeBidvRate(value) {
 
 function pickBidvSlot(list) {
     var latest = list[0];
-    var fourth = null;
 
-    for (var i = 0; i < list.length; i++) {
-        var slot = list[i];
-
-        if (Number(slot.time) === 4) {
-            fourth = slot;
-        }
-
-        if (Number(slot.time) > Number(latest.time)) {
-            latest = slot;
+    for (var i = 1; i < list.length; i++) {
+        if (Number(list[i].time) > Number(latest.time)) {
+            latest = list[i];
         }
     }
 
-    return fourth || latest;
+    return latest;
 }
 
 async function getBidvRates(dateStr) {
