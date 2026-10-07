@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tỷ giá USD</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="loading">
+    <div class="loading-box">
+        <div class="spinner"></div>
+        <div class="loading-title">Đang lấy tỷ giá</div>
+        <div id="loadingText">Đang chuẩn bị...</div>
+        <progress id="loadingProgress" value="0" max="100"></progress>
+        <div id="loadingPercent">0%</div>
+        <div>
+            <button type="button" class="danger" onclick="cancelRun()">Dừng</button>
+        </div>
+    </div>
+</div>
+
+<div class="page">
+
+    <div class="header">
+        <div class="brand-mark">USD</div>
+        <h1>Tỷ giá USD</h1>
+        <p>Chọn ngân hàng, dán danh sách ngày, rồi lấy cột Mua và Bán. Ngày nhập theo DD/MM/YYYY.</p>
+    </div>
+
+    <div class="panel toolbar">
+        <table class="toolbar-table">
+            <tr>
+                <td class="col-bank">
+                    <label class="field-label" for="bankSelect">Ngân hàng</label>
+                    <select id="bankSelect" onchange="onBankChanged()">
+                        <option value="acb">ACB</option>
+                        <option value="vcb">Vietcombank</option>
+                        <option value="mb">MB</option>
+                        <option value="bidv">BIDV</option>
+                        <option value="stb">Sacombank</option>
+                        <option value="vtb">VietinBank</option>
+                    </select>
+                    <div id="bankHint" class="bank-hint">ACB: Mua = USD BID TRANSFER, Bán = USD ASK TRANSFER</div>
+                </td>
+                <td class="col-actions">
+                    <label class="field-label">Thao tác</label>
+                    <div class="button-row">
+                        <button type="button" id="run" class="primary" onclick="run()">Lấy tỷ giá</button>
+                        <button type="button" id="stop" class="danger" onclick="cancelRun()" disabled>Dừng</button>
+                        <button type="button" class="secondary" onclick="clearAll()">Xóa</button>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="status-wrap">
+            <div id="status" class="status">Sẵn sàng</div>
+            <progress id="progress" class="main-progress" value="0" max="100"></progress>
+        </div>
+    </div>
+
+    <div class="columns">
+
+        <div class="left-panel">
+            <div class="panel">
+                <div class="panel-title">Danh sách ngày</div>
+                <p class="help">Mỗi ngày một dòng, dạng <b>DD/MM/YYYY</b>. Có thể dán cả cột Excel. Ngày trùng chỉ gọi API một lần.</p>
+                <textarea id="input" placeholder="23/07/2024&#10;24/07/2024&#10;25/07/2024"></textarea>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        Kết quả
+                        <span id="resultCount" class="count">0 dòng</span>
+                    </div>
+                    <button type="button" class="secondary" onclick="copyResults()">Copy Excel</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>
+                                    <span id="buyHeaderText">Mua chuyển khoản</span>
+                                    <button type="button" class="col-copy" title="Copy cả cột Mua" aria-label="Copy cả cột Mua" onclick="copyColumn(1)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/></svg>
+                                    </button>
+                                </th>
+                                <th>
+                                    <span id="sellHeaderText">Bán chuyển khoản</span>
+                                    <button type="button" class="col-copy" title="Copy cả cột Bán" aria-label="Copy cả cột Bán" onclick="copyColumn(2)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/></svg>
+                                    </button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody">
+                            <tr id="emptyRow">
+                                <td colspan="3" class="empty">
+                                    Chưa có dữ liệu.<br>
+                                    Chọn ngân hàng, dán ngày, rồi bấm <b>Lấy tỷ giá</b>.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="help" style="margin:10px 0 0 0;">Bôi đen bảng rồi Ctrl+C, hoặc bấm Copy Excel để dán sang Excel.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="debug-panel">
+        <div class="debug-header">
+            <button type="button" id="debugToggle" onclick="toggleDebug()">Hiện debug log</button>
+            <button type="button" class="secondary" onclick="clearDebugLog()" style="float:right;">Xóa log</button>
+        </div>
+        <textarea id="debugLog" readonly placeholder="Log debug sẽ hiển thị ở đây..."></textarea>
+    </div>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4095 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+
+<title>USD Exchange Rate</title>
+
+<HTA:APPLICATION
+    ID="ACBRateTool"
+    APPLICATIONNAME="USD Exchange Rate"
+    BORDER="thin"
+    CAPTION="yes"
+    MAXIMIZEBUTTON="yes"
+    MINIMIZEBUTTON="yes"
+    SCROLL="yes"
+    SINGLEINSTANCE="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="normal"
+    WIDTH="1120"
+    HEIGHT="780"
+/>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html {
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 18px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 15px;
+    color: #1e293b;
+    background: #e7edf3;
+}
+
+.page {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.header,
+.panel,
+.debug-panel {
+    background: #ffffff;
+    border: 1px solid #dbe3ec;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.header {
+    overflow: hidden;
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    border-top: 4px solid #1677ff;
+}
+
+.brand-mark {
+    float: left;
+    width: 48px;
+    height: 48px;
+    margin-right: 14px;
+    border-radius: 10px;
+    background: #1677ff;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 48px;
+    text-align: center;
+}
+
+.header h1 {
+    margin: 2px 0 4px 62px;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.header p {
+    margin: 0 0 0 62px;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.panel {
+    padding: 16px;
+}
+
+.toolbar {
+    margin-bottom: 14px;
+}
+
+.toolbar-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.toolbar-table td {
+    vertical-align: top;
+}
+
+.col-bank {
+    width: 48%;
+    padding-right: 18px;
+}
+
+.field-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#bankSelect {
+    width: 100%;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1e293b;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 15px;
+    outline: none;
+}
+
+#bankSelect:focus,
+#input:focus {
+    border-color: #1677ff;
+}
+
+#bankSelect:disabled {
+    color: #94a3b8;
+    background: #f1f5f9;
+}
+
+.bank-hint,
+.help {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.bank-hint {
+    margin-top: 6px;
+}
+
+.help {
+    margin: 0 0 10px 0;
+}
+
+.button-row button {
+    height: 40px;
+    margin: 0 8px 0 0;
+    padding: 0 16px;
+}
+
+button {
+    display: inline-block;
+    border: none;
+    border-radius: 8px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+button.primary {
+    background: #1677ff;
+    color: #ffffff;
+}
+
+button.primary:hover {
+    background: #0958d9;
+}
+
+button.secondary {
+    background: #e8eef5;
+    color: #334155;
+}
+
+button.secondary:hover {
+    background: #dbe4ee;
+}
+
+button.danger {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+button.danger:hover {
+    background: #b91c1c;
+}
+
+button:disabled,
+button:disabled:hover {
+    color: #94a3b8;
+    background: #e2e8f0;
+    cursor: default;
+}
+
+.status-wrap {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #e8eef4;
+}
+
+.status {
+    margin: 0 0 8px 0;
+    color: #334155;
+    font-size: 14px;
+}
+
+.main-progress,
+#loadingProgress {
+    width: 100%;
+    height: 8px;
+    border: none;
+    background: #e2e8f0;
+    color: #1677ff;
+}
+
+.columns {
+    overflow: hidden;
+}
+
+.left-panel {
+    float: left;
+    width: 36%;
+    padding-right: 7px;
+}
+
+.right-panel {
+    float: right;
+    width: 64%;
+    padding-left: 7px;
+}
+
+.panel-title {
+    margin: 0 0 8px 0;
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.panel-head {
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.panel-head .panel-title {
+    float: left;
+    margin: 8px 0 0 0;
+}
+
+.panel-head button {
+    float: right;
+    height: 36px;
+    margin: 0;
+    padding: 0 14px;
+}
+
+.count {
+    margin-left: 8px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#input {
+    width: 100%;
+    height: 300px;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    resize: vertical;
+    overflow: auto;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 15px;
+    line-height: 1.55;
+    outline: none;
+}
+
+.table-container {
+    width: 100%;
+    max-height: 300px;
+    overflow: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.result-table th,
+.result-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #e8eef4;
+    white-space: nowrap;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.result-table th {
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.result-table th:nth-child(2),
+.result-table th:nth-child(3) {
+    text-align: right;
+}
+
+.result-table .col-copy {
+    width: 22px;
+    height: 22px;
+    margin: 0 0 0 6px;
+    padding: 0;
+    border: 1px solid #d5deea;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #475569;
+    font-family: "Segoe MDL2 Assets", "Segoe UI Symbol", sans-serif;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 20px;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.result-table .col-copy:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1677ff;
+}
+
+.result-table td:nth-child(2),
+.result-table td:nth-child(3) {
+    text-align: right;
+    font-family: Consolas, "Courier New", monospace;
+}
+
+.result-table tbody tr:nth-child(even) td {
+    background: #f8fafc;
+}
+
+.result-table tr:hover td {
+    background: #eaf3ff;
+}
+
+.empty {
+    padding: 48px 16px !important;
+    color: #94a3b8;
+    font-family: "Segoe UI", Arial, sans-serif !important;
+    font-size: 14px;
+    text-align: center;
+    white-space: normal !important;
+}
+
+.debug-panel {
+    clear: both;
+    margin-top: 14px;
+    padding: 12px 14px;
+}
+
+.debug-header {
+    overflow: hidden;
+}
+
+.debug-header button {
+    height: 32px;
+    margin: 0;
+    padding: 0 12px;
+}
+
+#debugToggle {
+    float: left;
+    background: transparent;
+    color: #334155;
+}
+
+#debugLog {
+    display: none;
+    width: 100%;
+    height: 160px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    resize: vertical;
+    background: #111827;
+    color: #d1d5db;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#loading {
+    display: none;
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9999;
+    width: 320px;
+    background: transparent;
+    text-align: left;
+}
+
+.loading-box {
+    overflow: hidden;
+    padding: 16px;
+    border: 1px solid #dbe3ec;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16);
+}
+
+.spinner {
+    float: left;
+    width: 28px;
+    height: 28px;
+    margin: 0 12px 0 0;
+    border: 3px solid #e2e8f0;
+    border-top-color: #1677ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.loading-title {
+    margin-bottom: 4px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+#loadingText {
+    clear: both;
+    min-height: 36px;
+    margin-bottom: 10px;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre-line;
+}
+
+#loadingPercent {
+    margin-top: 6px;
+    color: #475569;
+    font-size: 13px;
+}
+
+.loading-box .danger {
+    height: 34px;
+    margin-top: 12px;
+    padding: 0 14px;
+}
+
+@media screen and (max-width: 980px) {
+    .toolbar-table,
+    .toolbar-table tbody,
+    .toolbar-table tr,
+    .toolbar-table td,
+    .left-panel,
+    .right-panel {
+        display: block;
+        float: none;
+        width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .col-bank {
+        padding-right: 0;
+        padding-bottom: 12px;
+    }
+
+    .right-panel {
+        margin-top: 14px;
+    }
+
+    #input,
+    .table-container {
+        height: 220px;
+        max-height: 220px;
+    }
+}
+
+@media screen and (max-height: 760px) {
+    body {
+        padding: 12px;
+    }
+
+    #input {
+        height: 180px;
+    }
+
+    .table-container {
+        max-height: 220px;
+    }
+}
+</style>
+
+
+<script language="javascript">
+
+/* =========================================================
+   GLOBAL VARIABLES
+========================================================= */
+
+var results = [];
+
+var running = false;
+
+var cancelled = false;
+
+var activeBank = "acb";
+
+var activeBankName = "ACB";
+
+var activeBuyLabel = "Mua chuyển khoản";
+
+var activeSellLabel = "Bán chuyển khoản";
+
+var mbSession = null;
+
+
+/* =========================================================
+   PARSE DATES
+========================================================= */
+
+function parseDates(text) {
+
+    var lines = text.split(/\r?\n/);
+
+    var dates = [];
+
+    var re =
+        /(^|[^\d])(\d{1,2}\/\d{1,2}\/\d{4})(?!\d)/;
+
+
+    for (var i = 0; i < lines.length; i++) {
+
+        var line =
+            lines[i].replace(/\|/g, " ");
+
+        var m;
+
+
+        while ((m = line.match(re)) !== null) {
+
+            dates.push(m[2]);
+
+            line =
+                line.substring(
+                    m.index + m[0].length
+                );
+        }
+    }
+
+
+    return dates;
+}
+
+
+/* =========================================================
+   DATE FORMAT  DD/MM/YYYY  ->  YYYY-MM-DD
+========================================================= */
+
+function toApiDate(dateStr) {
+
+    var parts = dateStr.split("/");
+
+    if (parts.length !== 3) {
+        throw new Error(
+            "Ngày không đúng định dạng DD/MM/YYYY: " +
+            dateStr
+        );
+    }
+
+    var day = parts[0];
+    var month = parts[1];
+    var year = parts[2];
+
+    if (day.length === 1) {
+        day = "0" + day;
+    }
+
+    if (month.length === 1) {
+        month = "0" + month;
+    }
+
+    return {
+        day: day,
+        month: month,
+        year: year,
+        isoDate: year + "-" + month + "-" + day
+    };
+}
+
+
+function bankMeta(bank) {
+
+    if (bank === "vcb") {
+        return {
+            name: "Vietcombank",
+            buy: "Mua chuyển khoản",
+            sell: "Bán",
+            hint: "Vietcombank: Mua = USD chuyển khoản (transfer), Bán = USD sell"
+        };
+    }
+
+    if (bank === "mb") {
+        return {
+            name: "MB",
+            buy: "Mua chuyển khoản",
+            sell: "Bán chuyển khoản",
+            hint: "MB: Mua = USD chuyển khoản, Bán = USD chuyển khoản"
+        };
+    }
+
+    if (bank === "bidv") {
+        return {
+            name: "BIDV",
+            buy: "Mua chuyển khoản",
+            sell: "Bán chuyển khoản",
+            hint: "BIDV: Mua = USD chuyển khoản, Bán = USD bán. Ưu tiên lần 4, chưa có thì lấy lần mới nhất."
+        };
+    }
+
+    if (bank === "stb") {
+        return {
+            name: "Sacombank",
+            buy: "Mua chuyển khoản",
+            sell: "Bán chuyển khoản",
+            hint: "Sacombank: Mua = USD chuyển khoản, Bán = USD chuyển khoản. Lấy khung giờ mới nhất trong ngày."
+        };
+    }
+
+    if (bank === "vtb") {
+        return {
+            name: "VietinBank",
+            buy: "Mua chuyển khoản",
+            sell: "Bán chuyển khoản",
+            hint: "VietinBank: Mua = USD chuyển khoản, Bán = USD bán. Lấy khung giờ mới nhất trong ngày."
+        };
+    }
+
+    return {
+        name: "ACB",
+        buy: "Mua chuyển khoản",
+        sell: "Bán chuyển khoản",
+        hint: "ACB: Mua = USD BID TRANSFER, Bán = USD ASK TRANSFER"
+    };
+}
+
+
+function applyBankLabels(bank) {
+
+    var meta = bankMeta(bank);
+
+    activeBank = bank;
+    activeBankName = meta.name;
+    activeBuyLabel = meta.buy;
+    activeSellLabel = meta.sell;
+
+    var buyHeader =
+        document.getElementById("buyHeaderText");
+
+    var sellHeader =
+        document.getElementById("sellHeaderText");
+
+    var hint =
+        document.getElementById("bankHint");
+
+    if (buyHeader) {
+        buyHeader.innerText = meta.buy;
+    }
+
+    if (sellHeader) {
+        sellHeader.innerText = meta.sell;
+    }
+
+    if (hint) {
+        hint.innerText = meta.hint;
+    }
+}
+
+
+function onBankChanged() {
+
+    if (running) {
+        return;
+    }
+
+    var bank =
+        document.getElementById("bankSelect").value;
+
+    if (results.length) {
+        document.getElementById("bankHint").innerText =
+            bankMeta(bank).hint +
+            " — bấm Lấy tỷ giá để tải dữ liệu mới.";
+        return;
+    }
+
+    applyBankLabels(bank);
+}
+
+
+function setBankLocked(locked) {
+
+    var bankSelect =
+        document.getElementById("bankSelect");
+
+    if (bankSelect) {
+        bankSelect.disabled = locked;
+    }
+}
+
+
+/* =========================================================
+   GET ACB RATES
+========================================================= */
+function getAcbRatesAsync(dateStr, callback) {
+
+    debugLog("========================================");
+    debugLog("ACB - Bắt đầu request: " + dateStr);
+
+
+    var iso;
+
+    try {
+
+        var dateInfo = toApiDate(dateStr);
+
+        iso = dateInfo.isoDate + "T23:59:59.999";
+
+    } catch (e) {
+
+        debugLog(
+            "ACB - Ngày không hợp lệ: " +
+            (e.message || e.description || String(e))
+        );
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+
+        return;
+    }
+
+
+    var url =
+        "https://acb.com.vn/api/front/v1/currency" +
+        "?currency=VND&effectiveDateTime=" +
+        encodeURIComponent(iso);
+
+
+    debugLog("ISO: " + iso);
+    debugLog("URL: " + url);
+
+
+    var xhr;
+
+
+    try {
+
+        xhr =
+            new ActiveXObject(
+                "MSXML2.XMLHTTP.6.0"
+            );
+
+        debugLog("Tạo XMLHTTP: OK");
+
+    } catch (e) {
+
+        debugLog(
+            "LỖI tạo XMLHTTP: " +
+            (e.message || e.description || String(e))
+        );
+
+        callback(
+            null,
+            "Không thể tạo HTTP request"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        xhr.open(
+            "GET",
+            url,
+            true
+        );
+
+        debugLog("xhr.open(): OK");
+
+    } catch (e) {
+
+        debugLog(
+            "LỖI xhr.open(): " +
+            (e.message || e.description || String(e))
+        );
+
+        callback(
+            null,
+            e.message ||
+            e.description ||
+            String(e)
+        );
+
+        return;
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        );
+
+        debugLog("Header User-Agent: OK");
+
+    } catch (e) {
+
+        debugLog("Header User-Agent: KHÔNG SET ĐƯỢC");
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "Accept",
+            "application/json, text/plain, */*"
+        );
+
+        debugLog("Header Accept: OK");
+
+    } catch (e) {
+
+        debugLog("Header Accept: KHÔNG SET ĐƯỢC");
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "X-Requested-With",
+            "XMLHttpRequest"
+        );
+
+        debugLog("Header X-Requested-With: OK");
+
+    } catch (e) {
+
+        debugLog("Header X-Requested-With: KHÔNG SET ĐƯỢC");
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "Referer",
+            "https://acb.com.vn/"
+        );
+
+        debugLog("Header Referer: OK");
+
+    } catch (e) {
+
+        debugLog("Header Referer: KHÔNG SET ĐƯỢC");
+    }
+
+
+    debugLog("Đang gửi request...");
+
+    var startTime = new Date().getTime();
+
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState !== 4) {
+            return;
+        }
+
+
+        var elapsed =
+            new Date().getTime() -
+            startTime;
+
+
+        debugLog(
+            "Request hoàn thành sau " +
+            elapsed +
+            " ms"
+        );
+
+
+        debugLog(
+            "HTTP Status: " +
+            xhr.status
+        );
+
+
+        try {
+
+            if (
+                xhr.status < 200 ||
+                xhr.status >= 300
+            ) {
+
+                var errorResponse = "";
+
+                try {
+
+                    errorResponse =
+                        xhr.responseText || "";
+
+                } catch (e) {
+
+                    errorResponse =
+                        "[Không đọc được responseText]";
+                }
+
+
+                debugLog(
+                    "HTTP ERROR: " +
+                    xhr.status
+                );
+
+
+                if (errorResponse) {
+
+                    debugLog(
+                        "Response: " +
+                        errorResponse
+                    );
+
+                } else {
+
+                    debugLog(
+                        "Response: [RỖNG]"
+                    );
+                }
+
+
+                callback(
+                    null,
+                    "HTTP " + xhr.status
+                );
+
+                return;
+            }
+
+
+            debugLog(
+                "Response length: " +
+                (xhr.responseText ?
+                    xhr.responseText.length :
+                    0)
+            );
+
+
+            var data;
+
+
+            try {
+
+                data =
+                    eval(
+                        "(" +
+                        xhr.responseText +
+                        ")"
+                    );
+
+                debugLog(
+                    "Parse JSON: OK"
+                );
+
+            } catch (e) {
+
+                debugLog(
+                    "LỖI parse JSON: " +
+                    (
+                        e.message ||
+                        e.description ||
+                        String(e)
+                    )
+                );
+
+
+                debugLog(
+                    "Response: " +
+                    xhr.responseText
+                );
+
+
+                callback(
+                    null,
+                    "Không đọc được JSON từ ACB"
+                );
+
+                return;
+            }
+
+
+            var buy = "N/A";
+            var sell = "N/A";
+
+
+            for (
+                var i = 0;
+                i < data.length;
+                i++
+            ) {
+
+                var item = data[i];
+
+
+                if (
+                    item.exchangeCurrency === "USD" &&
+                    item.dealType === "BID" &&
+                    item.instrumentType === "TRANSFER"
+                ) {
+
+                    buy =
+                        item.exchangeRate;
+
+                    debugLog(
+                        "Tìm thấy USD BID TRANSFER: " +
+                        buy
+                    );
+                }
+
+
+                if (
+                    item.exchangeCurrency === "USD" &&
+                    item.dealType === "ASK" &&
+                    item.instrumentType === "TRANSFER"
+                ) {
+
+                    sell =
+                        item.exchangeRate;
+
+                    debugLog(
+                        "Tìm thấy USD ASK TRANSFER: " +
+                        sell
+                    );
+                }
+
+            }
+
+
+            debugLog(
+                "Kết quả: BUY=" +
+                buy +
+                " | SELL=" +
+                sell
+            );
+
+
+            if (
+                buy === "N/A" &&
+                sell === "N/A"
+            ) {
+
+                debugLog(
+                    "Không tìm thấy tỷ giá USD"
+                );
+
+
+                callback(
+                    null,
+                    "Không tìm thấy tỷ giá USD"
+                );
+
+                return;
+            }
+
+
+            debugLog(
+                "Request thành công"
+            );
+
+
+            callback(
+                {
+                    buy: buy,
+                    sell: sell
+                },
+                null
+            );
+
+
+        } catch (e) {
+
+            var errorMessage =
+                e.message ||
+                e.description ||
+                String(e);
+
+
+            debugLog(
+                "LỖI xử lý response: " +
+                errorMessage
+            );
+
+
+            callback(
+                null,
+                errorMessage
+            );
+        }
+
+    };
+
+
+    try {
+
+        xhr.send();
+
+    } catch (e) {
+
+        var sendError =
+            e.message ||
+            e.description ||
+            String(e);
+
+
+        debugLog(
+            "LỖI xhr.send(): " +
+            sendError
+        );
+
+
+        callback(
+            null,
+            sendError
+        );
+    }
+
+}
+
+
+/* =========================================================
+   GET VIETCOMBANK RATES
+   Mua = USD transfer, Bán = USD sell
+========================================================= */
+
+function trimVcbRate(value) {
+
+    var text = String(value).replace(/^\s+|\s+$/g, "");
+
+    if (/^\d+\.0+$/.test(text)) {
+        return text.replace(/\.0+$/, "");
+    }
+
+    return text;
+}
+
+
+function getVcbRatesAsync(dateStr, callback) {
+
+    debugLog("========================================");
+    debugLog("VCB - Bắt đầu request: " + dateStr);
+
+    var isoDate;
+
+    try {
+
+        isoDate = toApiDate(dateStr).isoDate;
+
+    } catch (e) {
+
+        debugLog(
+            "VCB - Ngày không hợp lệ: " +
+            (e.message || e.description || String(e))
+        );
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+
+        return;
+    }
+
+
+    var url =
+        "https://www.vietcombank.com.vn/api/exchangerates" +
+        "?date=" + isoDate;
+
+
+    debugLog("VCB - ISO: " + isoDate);
+    debugLog("VCB - URL: " + url);
+
+
+    var xhr;
+
+
+    try {
+
+        xhr =
+            new ActiveXObject(
+                "MSXML2.XMLHTTP.6.0"
+            );
+
+        debugLog("VCB - Tạo XMLHTTP: OK");
+
+    } catch (e) {
+
+        debugLog(
+            "VCB - LỖI tạo XMLHTTP: " +
+            (e.message || e.description || String(e))
+        );
+
+        callback(
+            null,
+            "Không thể tạo HTTP request"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        xhr.open("GET", url, true);
+
+        debugLog("VCB - xhr.open(): OK");
+
+    } catch (e) {
+
+        debugLog(
+            "VCB - LỖI xhr.open(): " +
+            (e.message || e.description || String(e))
+        );
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+
+        return;
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        );
+
+        debugLog("VCB - Header User-Agent: OK");
+
+    } catch (e) {
+
+        debugLog("VCB - Header User-Agent: KHÔNG SET ĐƯỢC");
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "Accept",
+            "application/json, text/plain, */*"
+        );
+
+        debugLog("VCB - Header Accept: OK");
+
+    } catch (e) {
+
+        debugLog("VCB - Header Accept: KHÔNG SET ĐƯỢC");
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "Referer",
+            "https://www.vietcombank.com.vn/"
+        );
+
+        debugLog("VCB - Header Referer: OK");
+
+    } catch (e) {
+
+        debugLog("VCB - Header Referer: KHÔNG SET ĐƯỢC");
+    }
+
+
+    debugLog("VCB - Đang gửi request...");
+
+    var startTime = new Date().getTime();
+
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState !== 4) {
+            return;
+        }
+
+
+        var elapsed =
+            new Date().getTime() -
+            startTime;
+
+
+        debugLog(
+            "VCB - Request hoàn thành sau " +
+            elapsed +
+            " ms"
+        );
+
+
+        debugLog(
+            "VCB - HTTP Status: " +
+            xhr.status
+        );
+
+
+        try {
+
+            if (
+                xhr.status < 200 ||
+                xhr.status >= 300
+            ) {
+
+                var errorResponse = "";
+
+                try {
+
+                    errorResponse =
+                        xhr.responseText || "";
+
+                } catch (e) {
+
+                    errorResponse =
+                        "[Không đọc được responseText]";
+                }
+
+
+                debugLog(
+                    "VCB - HTTP ERROR: " +
+                    xhr.status
+                );
+
+
+                if (errorResponse) {
+
+                    debugLog(
+                        "VCB - Response: " +
+                        errorResponse
+                    );
+
+                } else {
+
+                    debugLog(
+                        "VCB - Response: [RỖNG]"
+                    );
+                }
+
+
+                callback(
+                    null,
+                    "HTTP " + xhr.status
+                );
+
+                return;
+            }
+
+
+            debugLog(
+                "VCB - Response length: " +
+                (xhr.responseText ?
+                    xhr.responseText.length :
+                    0)
+            );
+
+
+            var result;
+
+
+            try {
+
+                result =
+                    eval(
+                        "(" +
+                        xhr.responseText +
+                        ")"
+                    );
+
+                debugLog(
+                    "VCB - Parse JSON: OK"
+                );
+
+            } catch (e) {
+
+                debugLog(
+                    "VCB - LỖI parse JSON: " +
+                    (
+                        e.message ||
+                        e.description ||
+                        String(e)
+                    )
+                );
+
+
+                debugLog(
+                    "VCB - Response: " +
+                    xhr.responseText
+                );
+
+
+                callback(
+                    null,
+                    "Không đọc được JSON từ Vietcombank"
+                );
+
+                return;
+            }
+
+
+            var buy = null;
+            var sell = null;
+
+
+            if (result && result.Data) {
+
+                for (
+                    var i = 0;
+                    i < result.Data.length;
+                    i++
+                ) {
+
+                    var item = result.Data[i];
+
+                    if (item.currencyCode === "USD") {
+
+                        buy = trimVcbRate(item.transfer);
+                        sell = trimVcbRate(item.sell);
+
+                        debugLog(
+                            "VCB - USD transfer: " +
+                            buy +
+                            " | sell: " +
+                            sell
+                        );
+
+                        break;
+                    }
+                }
+            }
+
+
+            if (
+                buy == null ||
+                sell == null ||
+                buy === "" ||
+                sell === ""
+            ) {
+
+                debugLog(
+                    "VCB - Không tìm thấy USD transfer/sell"
+                );
+
+
+                callback(
+                    null,
+                    "Không tìm thấy tỷ giá USD"
+                );
+
+                return;
+            }
+
+
+            debugLog(
+                "VCB - Request thành công"
+            );
+
+
+            callback(
+                {
+                    buy: buy,
+                    sell: sell
+                },
+                null
+            );
+
+
+        } catch (e) {
+
+            var errorMessage =
+                e.message ||
+                e.description ||
+                String(e);
+
+
+            debugLog(
+                "VCB - LỖI xử lý response: " +
+                errorMessage
+            );
+
+
+            callback(
+                null,
+                errorMessage
+            );
+        }
+    };
+
+
+    try {
+
+        xhr.send();
+
+    } catch (e) {
+
+        var sendError =
+            e.message ||
+            e.description ||
+            String(e);
+
+
+        debugLog(
+            "VCB - LỖI xhr.send(): " +
+            sendError
+        );
+
+
+        callback(
+            null,
+            sendError
+        );
+    }
+}
+
+
+/* =========================================================
+   GET MB RATES
+   Mua = USD buy_bank_transfer
+   Bán = USD sell_bank_transfer
+========================================================= */
+
+function extractMbToken(html) {
+
+    var match =
+        String(html).match(
+            /name="__RequestVerificationToken"[^>]*value="([^"]+)"/
+        );
+
+    if (!match) {
+
+        match =
+            String(html).match(
+                /value="([^"]+)"[^>]*name="__RequestVerificationToken"/
+            );
+    }
+
+    if (!match) {
+        return "";
+    }
+
+    return match[1];
+}
+
+
+function mbRequestError(e) {
+
+    return e.message || e.description || String(e);
+}
+
+
+function openMbRequest(url, headers, callback) {
+
+    var xhr;
+
+    try {
+
+        xhr = new ActiveXObject("MSXML2.XMLHTTP.6.0");
+
+    } catch (e) {
+
+        callback(null, "Không thể tạo HTTP request");
+        return;
+    }
+
+
+    try {
+
+        xhr.open("GET", url, true);
+
+    } catch (e) {
+
+        callback(null, mbRequestError(e));
+        return;
+    }
+
+
+    var i;
+
+    for (i = 0; i < headers.length; i++) {
+
+        try {
+
+            xhr.setRequestHeader(
+                headers[i][0],
+                headers[i][1]
+            );
+
+        } catch (e) {
+
+            debugLog(
+                "MB - Header " +
+                headers[i][0] +
+                ": KHÔNG SET ĐƯỢC"
+            );
+        }
+    }
+
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState !== 4) {
+            return;
+        }
+
+        callback(xhr, null);
+    };
+
+
+    try {
+
+        xhr.send();
+
+    } catch (e) {
+
+        callback(null, mbRequestError(e));
+    }
+}
+
+
+function loadMbSessionAsync(callback) {
+
+    if (mbSession && mbSession.token) {
+        callback(mbSession, null);
+        return;
+    }
+
+
+    debugLog("MB - Mở trang tỷ giá để lấy phiên");
+
+
+    openMbRequest(
+        "https://www.mbbank.com.vn/ExchangeRate",
+        [
+            ["Accept", "text/html,application/xhtml+xml"],
+            ["Referer", "https://www.mbbank.com.vn/"]
+        ],
+        function (xhr, error) {
+
+            if (error) {
+
+                debugLog("MB - Lỗi mở trang: " + error);
+                callback(null, error);
+                return;
+            }
+
+
+            debugLog(
+                "MB - Trang phiên HTTP " +
+                xhr.status
+            );
+
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+
+                callback(
+                    null,
+                    "Không mở được trang MB (HTTP " +
+                    xhr.status +
+                    ")"
+                );
+
+                return;
+            }
+
+
+            var token = extractMbToken(xhr.responseText);
+
+            if (!token) {
+
+                debugLog(
+                    "MB - Không thấy token trong trang"
+                );
+
+                callback(
+                    null,
+                    "Không lấy được token MB"
+                );
+
+                return;
+            }
+
+
+            mbSession = {
+                token: token
+            };
+
+            debugLog("MB - Đã có token phiên");
+
+            callback(mbSession, null);
+        }
+    );
+}
+
+
+function getMbRatesAsync(dateStr, callback) {
+
+    requestMbRates(dateStr, false, callback);
+}
+
+
+function requestMbRates(dateStr, retried, callback) {
+
+    var isoDate;
+
+    try {
+
+        isoDate = toApiDate(dateStr).isoDate;
+
+    } catch (e) {
+
+        callback(null, mbRequestError(e));
+        return;
+    }
+
+
+    loadMbSessionAsync(function (session, error) {
+
+        if (error) {
+            callback(null, error);
+            return;
+        }
+
+
+        var url =
+            "https://www.mbbank.com.vn/api/getExchangeRate/" +
+            isoDate;
+
+
+        debugLog("========================================");
+        debugLog("MB - Bắt đầu request: " + dateStr);
+        debugLog("MB - URL: " + url);
+
+
+        openMbRequest(
+            url,
+            [
+                ["Accept", "application/json, text/plain, */*"],
+                ["Referer", "https://www.mbbank.com.vn/ExchangeRate"],
+                ["MB-XSRF-Token-FormOnline", session.token]
+            ],
+            function (xhr, reqError) {
+
+                if (reqError) {
+
+                    debugLog("MB - Lỗi request: " + reqError);
+                    callback(null, reqError);
+                    return;
+                }
+
+
+                debugLog(
+                    "MB - HTTP Status: " +
+                    xhr.status
+                );
+
+
+                if (xhr.status === 403 && !retried) {
+
+                    debugLog(
+                        "MB - 403, lấy token mới rồi thử lại"
+                    );
+
+                    mbSession = null;
+
+                    requestMbRates(
+                        dateStr,
+                        true,
+                        callback
+                    );
+
+                    return;
+                }
+
+
+                if (xhr.status < 200 || xhr.status >= 300) {
+
+                    callback(
+                        null,
+                        "HTTP " + xhr.status
+                    );
+
+                    return;
+                }
+
+
+                var result;
+
+                try {
+
+                    result = eval(
+                        "(" + xhr.responseText + ")"
+                    );
+
+                    debugLog("MB - Parse JSON: OK");
+
+                } catch (e) {
+
+                    debugLog(
+                        "MB - LỖI parse JSON: " +
+                        mbRequestError(e)
+                    );
+
+                    callback(
+                        null,
+                        "Không đọc được JSON từ MB"
+                    );
+
+                    return;
+                }
+
+
+                var buy = null;
+                var sell = null;
+
+                if (result && result.lst) {
+
+                    for (
+                        var i = 0;
+                        i < result.lst.length;
+                        i++
+                    ) {
+
+                        var item = result.lst[i];
+
+                        if (item.currencyCode === "USD") {
+
+                            buy = item.buy_bank_transfer;
+                            sell = item.sell_bank_transfer;
+
+                            break;
+                        }
+                    }
+                }
+
+
+                debugLog(
+                    "MB - BUY TRANSFER: " +
+                    buy +
+                    " | SELL TRANSFER: " +
+                    sell
+                );
+
+
+                if (
+                    buy == null ||
+                    sell == null ||
+                    buy === "" ||
+                    sell === ""
+                ) {
+
+                    callback(
+                        null,
+                        "Không tìm thấy tỷ giá USD chuyển khoản"
+                    );
+
+                    return;
+                }
+
+
+                callback(
+                    {
+                        buy: buy,
+                        sell: sell
+                    },
+                    null
+                );
+            }
+        );
+    });
+}
+
+
+/* =========================================================
+   GET BIDV RATES
+   Ưu tiên lần 4, không có thì lấy lần mới nhất
+   Mua = USD muaCk, Bán = USD ban
+========================================================= */
+
+function normalizeBidvRate(value) {
+
+    var text = String(value).replace(/^\s+|\s+$/g, "");
+
+    if (!text || text === "-") {
+        return "";
+    }
+
+    return text.replace(/,/g, "");
+}
+
+
+function pickBidvSlot(list) {
+
+    var latest = list[0];
+    var fourth = null;
+    var i;
+
+    for (i = 0; i < list.length; i++) {
+
+        var slot = list[i];
+
+        if (Number(slot.time) === 4) {
+            fourth = slot;
+        }
+
+        if (Number(slot.time) > Number(latest.time)) {
+            latest = slot;
+        }
+    }
+
+    if (fourth) {
+        return fourth;
+    }
+
+    return latest;
+}
+
+
+function postBidv(url, body, callback) {
+
+    var xhr;
+
+    try {
+
+        xhr = new ActiveXObject("MSXML2.XMLHTTP.6.0");
+
+    } catch (e) {
+
+        callback(null, "Không thể tạo HTTP request");
+        return;
+    }
+
+
+    try {
+
+        xhr.open("POST", url, true);
+
+    } catch (e) {
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+        return;
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "Content-Type",
+            "application/x-www-form-urlencoded"
+        );
+
+    } catch (e) {
+
+        debugLog("BIDV - Header Content-Type: KHÔNG SET ĐƯỢC");
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "Accept",
+            "application/json, text/plain, */*"
+        );
+
+    } catch (e) {
+
+        debugLog("BIDV - Header Accept: KHÔNG SET ĐƯỢC");
+    }
+
+
+    try {
+
+        xhr.setRequestHeader(
+            "Referer",
+            "https://bidv.com.vn/vn/ty-gia-ngoai-te"
+        );
+
+    } catch (e) {
+
+        debugLog("BIDV - Header Referer: KHÔNG SET ĐƯỢC");
+    }
+
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState !== 4) {
+            return;
+        }
+
+        callback(xhr, null);
+    };
+
+
+    try {
+
+        xhr.send(body);
+
+    } catch (e) {
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+    }
+}
+
+
+function getBidvRatesAsync(dateStr, callback) {
+
+    var bidvDate;
+
+    try {
+
+        var dateInfo = toApiDate(dateStr);
+
+        bidvDate =
+            dateInfo.day + "/" +
+            dateInfo.month + "/" +
+            dateInfo.year;
+
+    } catch (e) {
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+        return;
+    }
+
+
+    debugLog("========================================");
+    debugLog("BIDV - Bắt đầu request: " + dateStr);
+    debugLog("BIDV - Ngày: " + bidvDate);
+
+
+    postBidv(
+        "https://bidv.com.vn/ServicesBIDV/ExchangeDetailSearchTimeServlet",
+        "date=" + encodeURIComponent(bidvDate),
+        function (xhr, error) {
+
+            if (error) {
+
+                debugLog("BIDV - Lỗi danh sách lần: " + error);
+                callback(null, error);
+                return;
+            }
+
+
+            debugLog(
+                "BIDV - Danh sách lần HTTP " +
+                xhr.status
+            );
+
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+
+                callback(
+                    null,
+                    "HTTP " + xhr.status
+                );
+                return;
+            }
+
+
+            var times;
+
+            try {
+
+                times = eval("(" + xhr.responseText + ")");
+
+            } catch (e) {
+
+                callback(
+                    null,
+                    "Không đọc được danh sách lần BIDV"
+                );
+                return;
+            }
+
+
+            if (
+                !times ||
+                times.status !== 1 ||
+                !times.data ||
+                !times.data.length
+            ) {
+
+                debugLog("BIDV - Không có lần công bố");
+
+                callback(
+                    null,
+                    "Không có tỷ giá BIDV cho ngày này"
+                );
+                return;
+            }
+
+
+            var slot = pickBidvSlot(times.data);
+
+            debugLog(
+                "BIDV - Chọn lần " +
+                slot.time +
+                " lúc " +
+                slot.hour
+            );
+
+
+            postBidv(
+                "https://bidv.com.vn/ServicesBIDV/ExchangeDetailServlet",
+                "date=" + encodeURIComponent(bidvDate) +
+                "&time=" + encodeURIComponent(slot.namerecord),
+                function (detailXhr, detailError) {
+
+                    if (detailError) {
+
+                        debugLog(
+                            "BIDV - Lỗi tỷ giá: " +
+                            detailError
+                        );
+                        callback(null, detailError);
+                        return;
+                    }
+
+
+                    debugLog(
+                        "BIDV - Tỷ giá HTTP " +
+                        detailXhr.status
+                    );
+
+
+                    if (
+                        detailXhr.status < 200 ||
+                        detailXhr.status >= 300
+                    ) {
+
+                        callback(
+                            null,
+                            "HTTP " + detailXhr.status
+                        );
+                        return;
+                    }
+
+
+                    var result;
+
+                    try {
+
+                        result = eval(
+                            "(" + detailXhr.responseText + ")"
+                        );
+
+                    } catch (e) {
+
+                        callback(
+                            null,
+                            "Không đọc được JSON từ BIDV"
+                        );
+                        return;
+                    }
+
+
+                    var buy = null;
+                    var sell = null;
+
+                    if (result && result.data) {
+
+                        for (
+                            var i = 0;
+                            i < result.data.length;
+                            i++
+                        ) {
+
+                            var item = result.data[i];
+
+                            if (item.currency === "USD") {
+
+                                buy = normalizeBidvRate(item.muaCk);
+                                sell = normalizeBidvRate(item.ban);
+                                break;
+                            }
+                        }
+                    }
+
+
+                    debugLog(
+                        "BIDV - BUY TRANSFER: " +
+                        buy +
+                        " | SELL: " +
+                        sell
+                    );
+
+
+                    if (
+                        buy == null ||
+                        sell == null ||
+                        buy === "" ||
+                        sell === ""
+                    ) {
+
+                        callback(
+                            null,
+                            "Không tìm thấy tỷ giá USD chuyển khoản"
+                        );
+                        return;
+                    }
+
+
+                    callback(
+                        {
+                            buy: buy,
+                            sell: sell
+                        },
+                        null
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   GET SACOMBANK RATES
+   Khung giờ mới nhất trong ngày
+   Mua = USD bidInTransfer, Bán = USD offerInTransfer
+========================================================= */
+
+function stbRateValue(value) {
+
+    if (value == null || value === "" || value === 0 || value === "0") {
+        return "";
+    }
+
+    return String(value);
+}
+
+
+function getStbRatesAsync(dateStr, callback) {
+
+    var isoDate;
+
+    try {
+
+        isoDate = toApiDate(dateStr).isoDate;
+
+    } catch (e) {
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+        return;
+    }
+
+
+    var versionsUrl =
+        "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
+        "_jcr_content.sacom.exchange-rate.versions." +
+        isoDate +
+        ".json";
+
+
+    debugLog("========================================");
+    debugLog("STB - Bắt đầu request: " + dateStr);
+    debugLog("STB - Ngày: " + isoDate);
+
+
+    openMbRequest(
+        versionsUrl,
+        [
+            ["Accept", "application/json, text/plain, */*"],
+            ["Referer", "https://www.sacombank.com.vn/cong-cu/ty-gia.html"]
+        ],
+        function (xhr, error) {
+
+            if (error) {
+
+                debugLog("STB - Lỗi danh sách giờ: " + error);
+                callback(null, error);
+                return;
+            }
+
+
+            debugLog(
+                "STB - Danh sách giờ HTTP " +
+                xhr.status
+            );
+
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+
+                callback(
+                    null,
+                    "HTTP " + xhr.status
+                );
+                return;
+            }
+
+
+            var versions;
+
+            try {
+
+                versions = eval("(" + xhr.responseText + ")");
+
+            } catch (e) {
+
+                callback(
+                    null,
+                    "Không đọc được danh sách giờ Sacombank"
+                );
+                return;
+            }
+
+
+            if (
+                !versions ||
+                versions.statusCode !== 200 ||
+                !versions.data ||
+                !versions.data.length
+            ) {
+
+                debugLog("STB - Không có khung giờ");
+
+                callback(
+                    null,
+                    "Không có tỷ giá Sacombank cho ngày này"
+                );
+                return;
+            }
+
+
+            var latestTime = versions.data[0];
+
+            debugLog("STB - Khung giờ mới nhất: " + latestTime);
+
+
+            var rateUrl =
+                "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
+                "_jcr_content.sacom.exchange-rate." +
+                isoDate + "." +
+                encodeURIComponent(latestTime) +
+                ".json";
+
+
+            openMbRequest(
+                rateUrl,
+                [
+                    ["Accept", "application/json, text/plain, */*"],
+                    ["Referer", "https://www.sacombank.com.vn/cong-cu/ty-gia.html"]
+                ],
+                function (rateXhr, rateError) {
+
+                    if (rateError) {
+
+                        debugLog("STB - Lỗi tỷ giá: " + rateError);
+                        callback(null, rateError);
+                        return;
+                    }
+
+
+                    debugLog(
+                        "STB - Tỷ giá HTTP " +
+                        rateXhr.status
+                    );
+
+
+                    if (
+                        rateXhr.status < 200 ||
+                        rateXhr.status >= 300
+                    ) {
+
+                        callback(
+                            null,
+                            "HTTP " + rateXhr.status
+                        );
+                        return;
+                    }
+
+
+                    var result;
+
+                    try {
+
+                        result = eval(
+                            "(" + rateXhr.responseText + ")"
+                        );
+
+                    } catch (e) {
+
+                        callback(
+                            null,
+                            "Không đọc được JSON từ Sacombank"
+                        );
+                        return;
+                    }
+
+
+                    var buy = null;
+                    var sell = null;
+
+                    if (
+                        result &&
+                        result.statusCode === 200 &&
+                        result.data
+                    ) {
+
+                        for (
+                            var i = 0;
+                            i < result.data.length;
+                            i++
+                        ) {
+
+                            var item = result.data[i];
+
+                            if (item.currencyCode === "USD") {
+
+                                buy = stbRateValue(item.bidInTransfer);
+                                sell = stbRateValue(item.offerInTransfer);
+                                break;
+                            }
+                        }
+                    }
+
+
+                    debugLog(
+                        "STB - BUY TRANSFER: " +
+                        buy +
+                        " | SELL TRANSFER: " +
+                        sell
+                    );
+
+
+                    if (
+                        buy == null ||
+                        sell == null ||
+                        buy === "" ||
+                        sell === ""
+                    ) {
+
+                        callback(
+                            null,
+                            "Không tìm thấy tỷ giá USD chuyển khoản"
+                        );
+                        return;
+                    }
+
+
+                    callback(
+                        {
+                            buy: buy,
+                            sell: sell
+                        },
+                        null
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   GET VIETINBANK RATES
+   Khung giờ mới nhất trong ngày
+   Mua = USD transfer_rate, Bán = USD sell_rate
+========================================================= */
+
+var vtbActions = {
+    times: "e4d951bbcfdef7e590919ae33e39d2a200f3d9e7",
+    rates: "1e43a43a5124d6cc3cb463bc54021b34f39a4065"
+};
+
+
+function parseVtbPayload(text) {
+
+    var match = String(text).match(/(?:^|\n)1:(\[[\s\S]*\])\s*$/);
+
+    if (!match) {
+        return null;
+    }
+
+    try {
+        return eval("(" + match[1] + ")");
+    } catch (e) {
+        return null;
+    }
+}
+
+
+function latestVtbSlot(list) {
+
+    var best = list[0];
+    var i;
+
+    for (i = 1; i < list.length; i++) {
+
+        if (String(list[i].apply_date) > String(best.apply_date)) {
+            best = list[i];
+        }
+    }
+
+    return best;
+}
+
+
+function vtbRateValue(value) {
+
+    if (value == null || value === "" || value === 0 || value === "0") {
+        return "";
+    }
+
+    var text = String(value);
+
+    if (/^\d+\.0+$/.test(text)) {
+        return text.replace(/\.0+$/, "");
+    }
+
+    return text;
+}
+
+
+function postVtb(action, body, callback) {
+
+    var xhr;
+
+    try {
+
+        xhr = new ActiveXObject("MSXML2.XMLHTTP.6.0");
+
+    } catch (e) {
+
+        callback(null, "Không thể tạo HTTP request");
+        return;
+    }
+
+
+    try {
+
+        xhr.open(
+            "POST",
+            "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
+            true
+        );
+
+    } catch (e) {
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+        return;
+    }
+
+
+    try {
+        xhr.setRequestHeader("Accept", "text/x-component");
+    } catch (e) {}
+
+    try {
+        xhr.setRequestHeader(
+            "Content-Type",
+            "text/plain;charset=UTF-8"
+        );
+    } catch (e) {}
+
+    try {
+        xhr.setRequestHeader("Next-Action", action);
+    } catch (e) {}
+
+    try {
+        xhr.setRequestHeader("Origin", "https://www.vietinbank.vn");
+    } catch (e) {}
+
+    try {
+        xhr.setRequestHeader(
+            "Referer",
+            "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
+        );
+    } catch (e) {}
+
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState !== 4) {
+            return;
+        }
+
+        callback(xhr, null);
+    };
+
+
+    try {
+
+        xhr.send(body);
+
+    } catch (e) {
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+    }
+}
+
+
+function readVtbActions(js) {
+
+    var timeName = js.match(
+        /eB:function\(\)\{return ([A-Za-z_$][\w$]*)\}/
+    );
+
+    var rateName = js.match(
+        /OQ:function\(\)\{return ([A-Za-z_$][\w$]*)\}/
+    );
+
+    if (!timeName || !rateName) {
+        return null;
+    }
+
+    function hashOf(name) {
+
+        var escaped = name.replace(/\$/g, "\\$");
+        var re = new RegExp(
+            escaped +
+            "=\\(0,[A-Za-z_$][\\w$]*\\.\\$\\)\\(\"([a-f0-9]{40})\"\\)"
+        );
+        var found = js.match(re);
+
+        if (!found) {
+            return "";
+        }
+
+        return found[1];
+    }
+
+    var times = hashOf(timeName[1]);
+    var rates = hashOf(rateName[1]);
+
+    if (!times || !rates) {
+        return null;
+    }
+
+    return {
+        times: times,
+        rates: rates
+    };
+}
+
+
+function extractVtbChunks(html) {
+
+    var re = /\/_next\/static\/chunks\/[^"'\\\s>]+\.js/g;
+    var found = [];
+    var seen = {};
+    var match;
+
+    while ((match = re.exec(html)) !== null) {
+
+        if (!seen[match[0]]) {
+            seen[match[0]] = true;
+            found.push(
+                "https://www.vietinbank.vn" + match[0]
+            );
+        }
+    }
+
+    return found;
+}
+
+
+function scanVtbChunk(chunks, index, callback) {
+
+    if (index >= chunks.length) {
+
+        callback(null, "Không tìm thấy API VietinBank");
+        return;
+    }
+
+
+    openMbRequest(
+        chunks[index],
+        [["Accept", "*/*"]],
+        function (xhr, error) {
+
+            if (
+                !error &&
+                xhr.status >= 200 &&
+                xhr.status < 300 &&
+                xhr.responseText.indexOf("eB:function(){return") >= 0
+            ) {
+
+                var actions = readVtbActions(xhr.responseText);
+
+                if (actions) {
+
+                    vtbActions = actions;
+                    debugLog("VTB - Đã cập nhật mã API");
+                    callback(actions, null);
+                    return;
+                }
+            }
+
+            scanVtbChunk(chunks, index + 1, callback);
+        }
+    );
+}
+
+
+function discoverVtbActions(callback) {
+
+    debugLog("VTB - Tìm lại mã server action");
+
+    openMbRequest(
+        "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
+        [
+            ["Accept", "text/html"],
+            ["Referer", "https://www.vietinbank.vn/"]
+        ],
+        function (xhr, error) {
+
+            if (
+                error ||
+                xhr.status < 200 ||
+                xhr.status >= 300
+            ) {
+
+                callback(
+                    null,
+                    "Không mở được trang VietinBank"
+                );
+                return;
+            }
+
+            scanVtbChunk(
+                extractVtbChunks(xhr.responseText),
+                0,
+                callback
+            );
+        }
+    );
+}
+
+
+function getVtbRatesAsync(dateStr, callback) {
+
+    requestVtbRates(dateStr, false, callback);
+}
+
+
+function requestVtbRates(dateStr, retried, callback) {
+
+    var isoDate;
+
+    try {
+
+        isoDate = toApiDate(dateStr).isoDate;
+
+    } catch (e) {
+
+        callback(
+            null,
+            e.message || e.description || String(e)
+        );
+        return;
+    }
+
+
+    debugLog("========================================");
+    debugLog("VTB - Bắt đầu request: " + dateStr);
+    debugLog("VTB - Ngày: " + isoDate);
+
+
+    postVtb(
+        vtbActions.times,
+        "[\"" + isoDate + "\"]",
+        function (xhr, error) {
+
+            if (error) {
+
+                debugLog("VTB - Lỗi danh sách giờ: " + error);
+                callback(null, error);
+                return;
+            }
+
+
+            debugLog(
+                "VTB - Danh sách giờ HTTP " +
+                xhr.status
+            );
+
+
+            var slots = null;
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                slots = parseVtbPayload(xhr.responseText);
+            }
+
+
+            if (!slots && !retried) {
+
+                discoverVtbActions(function (actions, discoverError) {
+
+                    if (discoverError) {
+                        callback(null, discoverError);
+                        return;
+                    }
+
+                    requestVtbRates(dateStr, true, callback);
+                });
+
+                return;
+            }
+
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+
+                callback(
+                    null,
+                    "HTTP " + xhr.status
+                );
+                return;
+            }
+
+
+            if (!slots || !slots.length) {
+
+                debugLog("VTB - Không có khung giờ");
+
+                callback(
+                    null,
+                    "Không có tỷ giá VietinBank cho ngày này"
+                );
+                return;
+            }
+
+
+            var slot = latestVtbSlot(slots);
+
+            debugLog(
+                "VTB - Khung giờ mới nhất: " +
+                slot.apply_date
+            );
+
+
+            postVtb(
+                vtbActions.rates,
+                "[\"" + slot.apply_date + "\",[\"USD\"]]",
+                function (rateXhr, rateError) {
+
+                    if (rateError) {
+
+                        debugLog("VTB - Lỗi tỷ giá: " + rateError);
+                        callback(null, rateError);
+                        return;
+                    }
+
+
+                    debugLog(
+                        "VTB - Tỷ giá HTTP " +
+                        rateXhr.status
+                    );
+
+
+                    if (
+                        rateXhr.status < 200 ||
+                        rateXhr.status >= 300
+                    ) {
+
+                        callback(
+                            null,
+                            "HTTP " + rateXhr.status
+                        );
+                        return;
+                    }
+
+
+                    var rows = parseVtbPayload(rateXhr.responseText);
+                    var buy = null;
+                    var sell = null;
+                    var i;
+
+                    if (rows) {
+
+                        for (i = 0; i < rows.length; i++) {
+
+                            if (rows[i].currency_code === "USD") {
+
+                                buy = vtbRateValue(rows[i].transfer_rate);
+                                sell = vtbRateValue(rows[i].sell_rate);
+                                break;
+                            }
+                        }
+                    }
+
+
+                    debugLog(
+                        "VTB - BUY TRANSFER: " +
+                        buy +
+                        " | SELL: " +
+                        sell
+                    );
+
+
+                    if (
+                        buy == null ||
+                        sell == null ||
+                        buy === "" ||
+                        sell === ""
+                    ) {
+
+                        callback(
+                            null,
+                            "Không tìm thấy tỷ giá USD chuyển khoản"
+                        );
+                        return;
+                    }
+
+
+                    callback(
+                        {
+                            buy: buy,
+                            sell: sell
+                        },
+                        null
+                    );
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   DISPATCH BY BANK
+========================================================= */
+
+function getBankRatesAsync(bank, dateStr, callback) {
+
+    if (bank === "acb") {
+        getAcbRatesAsync(dateStr, callback);
+        return;
+    }
+
+    if (bank === "vcb") {
+        getVcbRatesAsync(dateStr, callback);
+        return;
+    }
+
+    if (bank === "mb") {
+        getMbRatesAsync(dateStr, callback);
+        return;
+    }
+
+    if (bank === "bidv") {
+        getBidvRatesAsync(dateStr, callback);
+        return;
+    }
+
+    if (bank === "stb") {
+        getStbRatesAsync(dateStr, callback);
+        return;
+    }
+
+    if (bank === "vtb") {
+        getVtbRatesAsync(dateStr, callback);
+        return;
+    }
+
+    callback(
+        null,
+        "Ngân hàng không hợp lệ"
+    );
+}
+
+
+/* =========================================================
+   SHOW / HIDE LOADING
+========================================================= */
+
+function showLoading(total) {
+
+    var overlay =
+        document.getElementById("loading");
+
+
+    if (!overlay) {
+        return;
+    }
+
+
+    overlay.style.display =
+        "block";
+
+
+    document.getElementById(
+        "loadingProgress"
+    ).max = total;
+
+
+    document.getElementById(
+        "loadingProgress"
+    ).value = 0;
+
+
+    document.getElementById(
+        "loadingPercent"
+    ).innerText = "0%";
+
+
+    document.getElementById(
+        "loadingText"
+    ).innerText =
+        "Đang chuẩn bị lấy tỷ giá...";
+}
+
+
+function hideLoading() {
+
+    var overlay =
+        document.getElementById("loading");
+
+
+    if (!overlay) {
+        return;
+    }
+
+
+    overlay.style.display =
+        "none";
+}
+
+
+/* =========================================================
+   UPDATE LOADING
+========================================================= */
+
+function updateLoading(
+    current,
+    total,
+    dateStr
+) {
+
+    var percent =
+        Math.round(
+            current /
+            total *
+            100
+        );
+
+
+    document.getElementById(
+        "loadingText"
+    ).innerText =
+        "Đang lấy tỷ giá " +
+        current +
+        "/" +
+        total +
+        "\n" +
+        dateStr;
+
+
+    document.getElementById(
+        "loadingProgress"
+    ).value =
+        current;
+
+
+    document.getElementById(
+        "loadingPercent"
+    ).innerText =
+        percent + "%";
+}
+
+
+/* =========================================================
+   ADD RESULT ROW
+========================================================= */
+
+function addResultRow(
+    dateStr,
+    buy,
+    sell
+) {
+
+    var tbody =
+        document.getElementById(
+            "resultBody"
+        );
+
+
+    var emptyRow =
+        document.getElementById(
+            "emptyRow"
+        );
+
+
+    if (emptyRow) {
+
+        tbody.removeChild(
+            emptyRow
+        );
+    }
+
+
+    var tr =
+        document.createElement("tr");
+
+
+    var tdDate =
+        document.createElement("td");
+
+    tdDate.innerText =
+        dateStr;
+
+
+    var tdBuy =
+        document.createElement("td");
+
+    tdBuy.innerText =
+        buy;
+
+
+    var tdSell =
+        document.createElement("td");
+
+    tdSell.innerText =
+        sell;
+
+
+    tr.appendChild(tdDate);
+
+    tr.appendChild(tdBuy);
+
+    tr.appendChild(tdSell);
+
+
+    tbody.appendChild(tr);
+
+
+    updateResultCount();
+}
+
+
+/* =========================================================
+   RESULT COUNT
+========================================================= */
+
+function updateResultCount() {
+
+    var tbody =
+        document.getElementById(
+            "resultBody"
+        );
+
+
+    var count = 0;
+
+
+    var rows =
+        tbody.getElementsByTagName(
+            "tr"
+        );
+
+
+    for (
+        var i = 0;
+        i < rows.length;
+        i++
+    ) {
+
+        if (
+            rows[i].id !==
+            "emptyRow"
+        ) {
+
+            count++;
+        }
+    }
+
+
+    document.getElementById(
+        "resultCount"
+    ).innerText =
+        count + " dòng";
+}
+
+
+/* =========================================================
+   CLEAR TABLE
+========================================================= */
+
+function clearResultsTable() {
+
+    var tbody =
+        document.getElementById(
+            "resultBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    while (tbody.firstChild) {
+
+        tbody.removeChild(
+            tbody.firstChild
+        );
+    }
+
+
+    var tr =
+        document.createElement(
+            "tr"
+        );
+
+    tr.id =
+        "emptyRow";
+
+
+    var td =
+        document.createElement(
+            "td"
+        );
+
+    td.colSpan = 3;
+
+    td.className =
+        "empty";
+
+
+    td.innerHTML =
+        "Chưa có dữ liệu.<br>" +
+        "Nhập danh sách ngày rồi bấm " +
+        "<b>Lấy tỷ giá</b>.";
+
+
+    tr.appendChild(td);
+
+    tbody.appendChild(tr);
+
+
+    document.getElementById(
+        "resultCount"
+    ).innerText =
+        "0 dòng";
+}
+
+
+/* =========================================================
+   RUN
+========================================================= */
+
+function run() {
+
+    if (running) {
+        return;
+    }
+
+
+    var input =
+        document.getElementById(
+            "input"
+        );
+
+
+    var dates =
+        parseDates(
+            input.value
+        );
+
+
+    if (dates.length === 0) {
+
+        alert(
+            "Không tìm thấy ngày hợp lệ dạng DD/MM/YYYY."
+        );
+
+        return;
+    }
+
+
+    running = true;
+
+    cancelled = false;
+
+    mbSession = null;
+
+
+    applyBankLabels(
+        document.getElementById(
+            "bankSelect"
+        ).value
+    );
+
+
+    document.getElementById(
+        "run"
+    ).disabled = true;
+
+
+    setBankLocked(true);
+
+
+    document.getElementById(
+        "stop"
+    ).disabled = false;
+
+
+    clearResultsTable();
+
+
+    results = [];
+
+
+    var cache = {};
+
+    var errors = [];
+
+
+    showLoading(
+        dates.length
+    );
+
+
+    document.getElementById(
+        "progress"
+    ).max =
+        dates.length;
+
+
+    document.getElementById(
+        "progress"
+    ).value = 0;
+
+
+    document.getElementById(
+        "status"
+    ).innerText =
+        "Đang chuẩn bị...";
+
+
+    processNext(
+        dates,
+        0,
+        cache,
+        errors,
+        activeBank
+    );
+}
+
+
+/* =========================================================
+   PROCESS NEXT DATE
+========================================================= */
+
+function processNext(
+    dates,
+    index,
+    cache,
+    errors,
+    bank
+) {
+
+
+    if (cancelled) {
+
+        running = false;
+
+        document.getElementById(
+            "run"
+        ).disabled = false;
+
+        document.getElementById(
+            "stop"
+        ).disabled = true;
+
+        setBankLocked(false);
+
+        hideLoading();
+
+
+        document.getElementById(
+            "status"
+        ).innerText =
+            "Đã dừng.";
+
+
+        return;
+    }
+
+
+    if (
+        index >=
+        dates.length
+    ) {
+
+        running = false;
+
+
+        document.getElementById(
+            "run"
+        ).disabled = false;
+
+
+        document.getElementById(
+            "stop"
+        ).disabled = true;
+
+
+        setBankLocked(false);
+
+        hideLoading();
+
+
+        if (
+            errors.length
+        ) {
+
+            document.getElementById(
+                "status"
+            ).innerText =
+                "Hoàn tất — " +
+                dates.length +
+                " dòng, " +
+                errors.length +
+                " lỗi.";
+
+
+            alert(
+                "Có lỗi khi gọi " +
+                activeBankName +
+                ":\n\n" +
+                errors.join("\n")
+            );
+
+        } else {
+
+            document.getElementById(
+                "status"
+            ).innerText =
+                "Hoàn tất — " +
+                dates.length +
+                " dòng. " +
+                "Ngày trùng chỉ gọi API một lần.";
+        }
+
+
+        return;
+    }
+
+
+    var d =
+        dates[index];
+
+
+    var current =
+        index + 1;
+
+
+    updateLoading(
+        current,
+        dates.length,
+        d
+    );
+
+
+    document.getElementById(
+        "status"
+    ).innerText =
+        "Đang lấy " +
+        current +
+        "/" +
+        dates.length +
+        " — " +
+        d;
+
+
+    /* ==============================================
+       CACHE
+    ============================================== */
+
+    if (
+        cache.hasOwnProperty(d)
+    ) {
+
+        var cached =
+            cache[d];
+
+
+        results.push([
+            d,
+            cached.buy,
+            cached.sell
+        ]);
+
+
+        addResultRow(
+            d,
+            cached.buy,
+            cached.sell
+        );
+
+
+        updateMainProgress(
+            current,
+            dates.length
+        );
+
+
+        window.setTimeout(
+            function () {
+
+                processNext(
+                    dates,
+                    index + 1,
+                    cache,
+                    errors,
+                    bank
+                );
+
+            },
+            50
+        );
+
+
+        return;
+    }
+
+
+    /* ==============================================
+       API
+    ============================================== */
+
+    getBankRatesAsync(
+        bank,
+        d,
+        function (
+            rate,
+            error
+        ) {
+
+
+            if (error) {
+
+                rate = {
+                    buy: "Lỗi",
+                    sell: "Lỗi"
+                };
+
+
+                errors.push(
+                    d +
+                    ": " +
+                    error
+                );
+            }
+
+
+            cache[d] =
+                rate;
+
+
+            results.push([
+                d,
+                rate.buy,
+                rate.sell
+            ]);
+
+
+            addResultRow(
+                d,
+                rate.buy,
+                rate.sell
+            );
+
+
+            updateMainProgress(
+                current,
+                dates.length
+            );
+
+
+            /*
+               Nghỉ 200ms giữa các request
+            */
+
+            window.setTimeout(
+                function () {
+
+                    processNext(
+                        dates,
+                        index + 1,
+                        cache,
+                        errors,
+                        bank
+                    );
+
+                },
+                200
+            );
+
+        }
+    );
+}
+
+
+/* =========================================================
+   MAIN PROGRESS
+========================================================= */
+
+function updateMainProgress(
+    current,
+    total
+) {
+
+    document.getElementById(
+        "progress"
+    ).value =
+        current;
+
+
+    var percent =
+        Math.round(
+            current /
+            total *
+            100
+        );
+
+
+    document.getElementById(
+        "status"
+    ).innerText =
+        "Đã xử lý " +
+        current +
+        "/" +
+        total +
+        " (" +
+        percent +
+        "%)";
+}
+
+
+/* =========================================================
+   COPY RESULTS TO EXCEL
+========================================================= */
+
+function copyResults() {
+
+    if (
+        !results.length
+    ) {
+
+        alert(
+            "Chưa có kết quả."
+        );
+
+        return;
+    }
+
+
+    var text =
+        "Ngày\t" +
+        activeBuyLabel +
+        "\t" +
+        activeSellLabel +
+        "\r\n";
+
+
+    for (
+        var i = 0;
+        i < results.length;
+        i++
+    ) {
+
+        text +=
+            results[i][0] +
+            "\t" +
+            results[i][1] +
+            "\t" +
+            results[i][2];
+
+
+        if (
+            i <
+            results.length - 1
+        ) {
+
+            text +=
+                "\r\n";
+        }
+    }
+
+
+    try {
+
+        window.clipboardData.setData(
+            "Text",
+            text
+        );
+
+
+        alert(
+            "Đã copy dữ liệu.\n" +
+            "Có thể Ctrl+V trực tiếp vào Excel."
+        );
+
+    } catch (e) {
+
+        alert(
+            "Không tự copy được.\n" +
+            "Hãy chọn dữ liệu trong bảng rồi Ctrl+C."
+        );
+    }
+}
+
+
+function copyColumn(colIndex) {
+
+    if (!results.length) {
+
+        alert("Chưa có kết quả.");
+        return;
+    }
+
+
+    var lines = [];
+
+    for (var i = 0; i < results.length; i++) {
+        lines.push(results[i][colIndex]);
+    }
+
+
+    var label = colIndex === 1
+        ? activeBuyLabel
+        : activeSellLabel;
+
+
+    try {
+
+        window.clipboardData.setData(
+            "Text",
+            lines.join("\r\n")
+        );
+
+        document.getElementById("status").innerText =
+            "Đã copy cột " +
+            label +
+            " (" +
+            lines.length +
+            " dòng). Ctrl+V để dán vào Excel.";
+
+    } catch (e) {
+
+        alert(
+            "Không tự copy được.\n" +
+            "Hãy chọn dữ liệu trong cột rồi Ctrl+C."
+        );
+    }
+}
+
+
+/* =========================================================
+   CLEAR ALL
+========================================================= */
+
+function clearAll() {
+
+    if (running) {
+
+        alert(
+            "Đang lấy dữ liệu. " +
+            "Hãy bấm Dừng trước."
+        );
+
+        return;
+    }
+
+
+    document.getElementById(
+        "input"
+    ).value = "";
+
+
+    clearResultsTable();
+
+
+    document.getElementById(
+        "progress"
+    ).value = 0;
+
+
+    document.getElementById(
+        "status"
+    ).innerText =
+        "Sẵn sàng";
+
+
+    results = [];
+}
+
+
+/* =========================================================
+   CANCEL
+========================================================= */
+
+function cancelRun() {
+
+    if (!running) {
+        return;
+    }
+
+
+    cancelled = true;
+
+
+    document.getElementById(
+        "status"
+    ).innerText =
+        "Đang dừng...";
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+window.onload = function () {
+
+    /*
+       Đảm bảo loading luôn ẩn
+       khi vừa mở ứng dụng.
+    */
+
+    var loading =
+        document.getElementById(
+            "loading"
+        );
+
+
+    if (loading) {
+
+        loading.style.display =
+            "none";
+    }
+
+
+    clearResultsTable();
+
+    onBankChanged();
+
+};
+
+function debugLog(message) {
+
+    var box = document.getElementById("debugLog");
+
+    if (!box) {
+        return;
+    }
+
+    var now = new Date();
+
+    var time =
+        ("0" + now.getHours()).slice(-2) + ":" +
+        ("0" + now.getMinutes()).slice(-2) + ":" +
+        ("0" + now.getSeconds()).slice(-2);
+
+    box.value +=
+        "[" + time + "] " +
+        message +
+        "\r\n";
+
+    box.scrollTop = box.scrollHeight;
+}
+
+
+function clearDebugLog() {
+
+    var box = document.getElementById("debugLog");
+
+    if (box) {
+        box.value = "";
+    }
+}
+
+
+function toggleDebug() {
+
+    var box = document.getElementById("debugLog");
+    var btn = document.getElementById("debugToggle");
+
+    if (!box) {
+        return;
+    }
+
+    if (box.style.display === "block") {
+        box.style.display = "none";
+        if (btn) {
+            btn.innerText = "Hiện debug log";
+        }
+    } else {
+        box.style.display = "block";
+        if (btn) {
+            btn.innerText = "Ẩn debug log";
+        }
+    }
+}
+
+</script>
+
+</head>
+
+
+<body>
+
+<div id="loading">
+    <div class="loading-box">
+        <div class="spinner"></div>
+        <div class="loading-title">Đang lấy tỷ giá</div>
+        <div id="loadingText">Đang chuẩn bị...</div>
+        <progress id="loadingProgress" value="0" max="100"></progress>
+        <div id="loadingPercent">0%</div>
+        <div>
+            <button class="danger" onclick="cancelRun()">Dừng</button>
+        </div>
+    </div>
+</div>
+
+<div class="page">
+
+    <div class="header">
+        <div class="brand-mark">USD</div>
+        <h1>Tỷ giá USD</h1>
+        <p>Chọn ngân hàng, dán danh sách ngày, rồi lấy cột Mua và Bán. Ngày nhập theo DD/MM/YYYY.</p>
+    </div>
+
+    <div class="panel toolbar">
+        <table class="toolbar-table">
+            <tr>
+                <td class="col-bank">
+                    <label class="field-label" for="bankSelect">Ngân hàng</label>
+                    <select id="bankSelect" onchange="onBankChanged()">
+                        <option value="acb">ACB</option>
+                        <option value="vcb">Vietcombank</option>
+                        <option value="mb">MB</option>
+                        <option value="bidv">BIDV</option>
+                        <option value="stb">Sacombank</option>
+                        <option value="vtb">VietinBank</option>
+                    </select>
+                    <div id="bankHint" class="bank-hint">ACB: Mua = USD BID TRANSFER, Bán = USD ASK TRANSFER</div>
+                </td>
+                <td class="col-actions">
+                    <label class="field-label">Thao tác</label>
+                    <div class="button-row">
+                        <button id="run" class="primary" onclick="run()">Lấy tỷ giá</button>
+                        <button id="stop" class="danger" onclick="cancelRun()" disabled>Dừng</button>
+                        <button class="secondary" onclick="clearAll()">Xóa</button>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="status-wrap">
+            <div id="status" class="status">Sẵn sàng</div>
+            <progress id="progress" class="main-progress" value="0" max="100"></progress>
+        </div>
+    </div>
+
+    <div class="columns">
+
+        <div class="left-panel">
+            <div class="panel">
+                <div class="panel-title">Danh sách ngày</div>
+                <p class="help">Mỗi ngày một dòng, dạng <b>DD/MM/YYYY</b>. Có thể dán cả cột Excel. Ngày trùng chỉ gọi API một lần.</p>
+                <textarea id="input" placeholder="23/07/2024&#10;24/07/2024&#10;25/07/2024"></textarea>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        Kết quả
+                        <span id="resultCount" class="count">0 dòng</span>
+                    </div>
+                    <button class="secondary" onclick="copyResults()">Copy Excel</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>
+                                    <span id="buyHeaderText">Mua chuyển khoản</span>
+                                    <button type="button" class="col-copy" title="Copy cả cột Mua" onclick="copyColumn(1)">&#xE8C8;</button>
+                                </th>
+                                <th>
+                                    <span id="sellHeaderText">Bán chuyển khoản</span>
+                                    <button type="button" class="col-copy" title="Copy cả cột Bán" onclick="copyColumn(2)">&#xE8C8;</button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody">
+                            <tr id="emptyRow">
+                                <td colspan="3" class="empty">
+                                    Chưa có dữ liệu.<br>
+                                    Chọn ngân hàng, dán ngày, rồi bấm <b>Lấy tỷ giá</b>.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="help" style="margin:10px 0 0 0;">Bôi đen bảng rồi Ctrl+C, hoặc bấm Copy Excel để dán sang Excel.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="debug-panel">
+        <div class="debug-header">
+            <button type="button" id="debugToggle" onclick="toggleDebug()">Hiện debug log</button>
+            <button type="button" class="secondary" onclick="clearDebugLog()" style="float:right;">Xóa log</button>
+        </div>
+        <textarea id="debugLog" readonly placeholder="Log debug sẽ hiển thị ở đây..."></textarea>
+    </div>
+
+</div>
+
+</body>
+
+</html>
