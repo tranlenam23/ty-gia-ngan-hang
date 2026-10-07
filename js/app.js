@@ -1,6 +1,6 @@
 /* Tỷ giá USD — bản web của công cụ HTA.
    Để trống nếu chưa có Apps Script trung gian cho MB và VietinBank. */
-var PROXY_URL = "";
+var bankTables = {};
 
 var results = [];
 var running = false;
@@ -487,50 +487,54 @@ function extractMbToken(html) {
     return match ? match[1] : "";
 }
 
-async function getMbRates(dateStr) {
-    var isoDate = toApiDate(dateStr).isoDate;
+async function loadBankTable(bank) {
+    if (bankTables[bank]) {
+        return bankTables[bank];
+    }
 
+    var response = await fetch("data/" + bank + ".json?t=" + Math.floor(Date.now() / 3600000));
+
+    if (!response.ok) {
+        throw new Error("Không tải được dữ liệu " + bankMeta(bank).name);
+    }
+
+    bankTables[bank] = await response.json();
+    return bankTables[bank];
+}
+
+async function rateFromTable(bank, dateStr) {
+    var isoDate = toApiDate(dateStr).isoDate;
+    var table = await loadBankTable(bank);
+
+    if (!Object.prototype.hasOwnProperty.call(table, isoDate)) {
+        return null;
+    }
+
+    var row = table[isoDate];
+
+    if (!row || row.buy == null || row.buy === "" || row.sell == null || row.sell === "") {
+        throw new Error(row && row.error
+            ? row.error
+            : "Không có tỷ giá " + bankMeta(bank).name + " cho ngày này");
+    }
+
+    debugLog(bankMeta(bank).name + " BUY=" + row.buy + " SELL=" + row.sell);
+    return {
+        buy: String(row.buy),
+        sell: String(row.sell)
+    };
+}
+
+async function getMbRates(dateStr) {
     debugLog("MB " + dateStr);
 
-    if (PROXY_URL) {
-        var proxied = await callProxy({
-            op: "mb",
-            date: isoDate
-        });
+    var saved = await rateFromTable("mb", dateStr);
 
-        ensureOk(proxied, "MB");
-        return readMbPayload(proxied.responseText);
+    if (saved) {
+        return saved;
     }
 
-    var page = await httpGet("https://www.mbbank.com.vn/ExchangeRate");
-    ensureOk(page, "MB");
-
-    var token = extractMbToken(page.responseText);
-
-    if (!token) {
-        throw new Error("Không lấy được phiên MB. Ngân hàng gắn cookie với token, trình duyệt bên ngoài không giữ được.");
-    }
-
-    try {
-        var response = await directRequest(
-            "GET",
-            "https://www.mbbank.com.vn/api/getExchangeRate/" + isoDate,
-            {
-                Accept: "application/json, text/plain, */*",
-                "MB-XSRF-Token-FormOnline": token
-            },
-            null
-        );
-
-        ensureOk(response, "MB");
-        return readMbPayload(response.responseText);
-    } catch (error) {
-        if (error.message && error.message.indexOf("HTTP ") === 0) {
-            throw error;
-        }
-
-        throw new Error("MB yêu cầu cookie phiên cùng token, trình duyệt không gửi được.");
-    }
+    throw new Error("Không có tỷ giá MB cho ngày này");
 }
 
 function readMbPayload(text) {
@@ -641,6 +645,22 @@ function stbRateValue(value) {
 }
 
 async function getStbRates(dateStr) {
+    var saved = null;
+
+    try {
+        saved = await rateFromTable("stb", dateStr);
+    } catch (error) {
+        if (error.message && error.message.indexOf("Không tải được") === 0) {
+            debugLog("Sacombank dữ liệu lưu: " + error.message);
+        } else {
+            throw error;
+        }
+    }
+
+    if (saved) {
+        return saved;
+    }
+
     var isoDate = toApiDate(dateStr).isoDate;
     var versionsUrl =
         "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
@@ -817,53 +837,16 @@ async function discoverVtbActions() {
     throw new Error("Không tìm thấy API VietinBank");
 }
 
-async function requestVtbRates(dateStr, retried) {
-    var isoDate = toApiDate(dateStr).isoDate;
-
+async function requestVtbRates(dateStr) {
     debugLog("VietinBank " + dateStr);
 
-    var timesResponse = await postVtb(vtbActions.times, "[\"" + isoDate + "\"]");
-    var slots = null;
+    var saved = await rateFromTable("vtb", dateStr);
 
-    if (timesResponse.status >= 200 && timesResponse.status < 300) {
-        slots = parseVtbPayload(timesResponse.responseText);
+    if (saved) {
+        return saved;
     }
 
-    if (!slots && !retried) {
-        await discoverVtbActions();
-        return requestVtbRates(dateStr, true);
-    }
-
-    ensureOk(timesResponse, "VietinBank");
-
-    if (!slots || !slots.length) {
-        throw new Error("Không có tỷ giá VietinBank cho ngày này");
-    }
-
-    var slot = latestVtbSlot(slots);
-    debugLog("VietinBank khung giờ " + slot.apply_date);
-
-    var rateResponse = await postVtb(
-        vtbActions.rates,
-        "[\"" + slot.apply_date + "\",[\"USD\"]]"
-    );
-
-    ensureOk(rateResponse, "VietinBank");
-
-    var rows = parseVtbPayload(rateResponse.responseText) || [];
-    var buy = null;
-    var sell = null;
-
-    for (var i = 0; i < rows.length; i++) {
-        if (rows[i].currency_code === "USD") {
-            buy = vtbRateValue(rows[i].transfer_rate);
-            sell = vtbRateValue(rows[i].sell_rate);
-            break;
-        }
-    }
-
-    debugLog("VietinBank BUY=" + buy + " SELL=" + sell);
-    return requirePair(buy, sell);
+    throw new Error("Không có tỷ giá VietinBank cho ngày này");
 }
 
 async function getBankRates(bank, dateStr) {

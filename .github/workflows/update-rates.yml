@@ -1,0 +1,25 @@
+name: Cập nhật tỷ giá
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/update-rates.js --recent 21 --refresh
+      - name: Lưu dữ liệu
+        run: |
+          git add data
+          git diff --cached --quiet && exit 0
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Cập nhật tỷ giá MB, VietinBank và Sacombank"
+          git push
