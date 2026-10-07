@@ -1076,26 +1076,42 @@ function cancelRun() {
     document.getElementById("status").textContent = "Đang dừng...";
 }
 
+function copyWithSelection(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.top = "0";
+    area.style.left = "0";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, area.value.length);
+
+    var ok = false;
+
+    try {
+        ok = document.execCommand("copy");
+    } catch (e) {
+        ok = false;
+    }
+
+    document.body.removeChild(area);
+    return ok;
+}
+
 async function writeClipboard(text) {
+    if (copyWithSelection(text)) {
+        return;
+    }
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
         return;
     }
 
-    var area = document.createElement("textarea");
-    area.value = text;
-    area.setAttribute("readonly", "");
-    area.style.position = "fixed";
-    area.style.left = "-9999px";
-    document.body.appendChild(area);
-    area.select();
-
-    var ok = document.execCommand("copy");
-    document.body.removeChild(area);
-
-    if (!ok) {
-        throw new Error("copy");
-    }
+    throw new Error("copy");
 }
 
 async function copyResults() {
