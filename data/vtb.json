@@ -829,5 +829,6 @@
   "2026-10-06": {"buy":"25628","sell":"26168"},
   "2026-10-07": {"buy":"25797","sell":"26177"},
   "2026-10-08": {"error":"Không có tỷ giá VietinBank cho ngày này"},
-  "2026-10-09": {"error":"Không có tỷ giá VietinBank cho ngày này"}
+  "2026-10-09": {"error":"Không có tỷ giá VietinBank cho ngày này"},
+  "2026-10-10": {"error":"Không có tỷ giá VietinBank cho ngày này"}
 }
