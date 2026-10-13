@@ -833,5 +833,5 @@
   "2026-10-10": {"error":"Không có tỷ giá Sacombank cho ngày này"},
   "2026-10-11": {"error":"Không có tỷ giá Sacombank cho ngày này"},
   "2026-10-12": {"buy":"25750","sell":"26110"},
-  "2026-10-13": {"error":"Không có tỷ giá Sacombank cho ngày này"}
+  "2026-10-13": {"buy":"25730","sell":"26100"}
 }
