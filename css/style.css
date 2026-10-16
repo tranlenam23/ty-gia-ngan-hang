@@ -364,12 +364,79 @@ button:disabled:hover {
     font-family: ui-monospace, Consolas, "Courier New", monospace;
 }
 
-.result-table tbody tr:nth-child(even) td {
+.result-table tbody tr.data-row.alt td {
     background: #f8fafc;
 }
 
-.result-table tr:hover td {
+.result-table tr.data-row:hover td {
     background: #eaf3ff;
+}
+
+.date-text {
+    vertical-align: middle;
+}
+
+.slot-btn {
+    height: 26px;
+    margin: 0 0 0 8px;
+    padding: 0 8px;
+    border: 1px solid #d5deea;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 24px;
+    vertical-align: middle;
+}
+
+.slot-btn:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1677ff;
+}
+
+.slot-cell {
+    padding: 10px 14px !important;
+    background: #f8fafc !important;
+    font-family: "Segoe UI", system-ui, Arial, sans-serif !important;
+    text-align: left !important;
+    white-space: normal !important;
+}
+
+.slot-note {
+    margin: 0 0 8px 0;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.slot-menu {
+    max-height: 148px;
+    overflow: auto;
+}
+
+.slot-option {
+    height: 30px;
+    margin: 0 6px 6px 0;
+    padding: 0 10px;
+    border: 1px solid #d5deea;
+    background: #ffffff;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.slot-option:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1677ff;
+}
+
+.slot-option.current {
+    border-color: #1677ff;
+    background: #eff6ff;
+    color: #1677ff;
 }
 
 .empty {

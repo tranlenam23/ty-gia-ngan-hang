@@ -365,12 +365,79 @@ button:disabled:hover {
     font-family: Consolas, "Courier New", monospace;
 }
 
-.result-table tbody tr:nth-child(even) td {
+.result-table tbody tr.data-row.alt td {
     background: #f8fafc;
 }
 
-.result-table tr:hover td {
+.result-table tr.data-row:hover td {
     background: #eaf3ff;
+}
+
+.date-text {
+    vertical-align: middle;
+}
+
+.slot-btn {
+    height: 26px;
+    margin: 0 0 0 8px;
+    padding: 0 8px;
+    border: 1px solid #d5deea;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 24px;
+    vertical-align: middle;
+}
+
+.slot-btn:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1677ff;
+}
+
+.slot-cell {
+    padding: 10px 14px !important;
+    background: #f8fafc !important;
+    font-family: "Segoe UI", Arial, sans-serif !important;
+    text-align: left !important;
+    white-space: normal !important;
+}
+
+.slot-note {
+    margin: 0 0 8px 0;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.slot-menu {
+    max-height: 148px;
+    overflow: auto;
+}
+
+.slot-option {
+    height: 30px;
+    margin: 0 6px 6px 0;
+    padding: 0 10px;
+    border: 1px solid #d5deea;
+    background: #ffffff;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.slot-option:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1677ff;
+}
+
+.slot-option.current {
+    border-color: #1677ff;
+    background: #eff6ff;
+    color: #1677ff;
 }
 
 .empty {
@@ -538,6 +605,8 @@ button:disabled:hover {
 
 var results = [];
 
+var slotCache = {};
+
 var running = false;
 
 var cancelled = false;
@@ -652,7 +721,7 @@ function bankMeta(bank) {
             name: "BIDV",
             buy: "Mua chuyển khoản",
             sell: "Bán chuyển khoản",
-            hint: "BIDV: Mua = USD chuyển khoản, Bán = USD bán. Lấy lần công bố mới nhất trong ngày."
+            hint: "BIDV: Mua = USD chuyển khoản, Bán = USD bán. Mặc định là lần công bố mới nhất. Bấm nút cạnh ngày để chọn lần khác."
         };
     }
 
@@ -661,7 +730,7 @@ function bankMeta(bank) {
             name: "Sacombank",
             buy: "Mua chuyển khoản",
             sell: "Bán chuyển khoản",
-            hint: "Sacombank: Mua = USD chuyển khoản, Bán = USD chuyển khoản. Lấy khung giờ mới nhất trong ngày."
+            hint: "Sacombank: Mua = USD chuyển khoản, Bán = USD chuyển khoản. Mặc định là khung giờ mới nhất. Bấm nút cạnh ngày để chọn giờ khác."
         };
     }
 
@@ -670,7 +739,7 @@ function bankMeta(bank) {
             name: "VietinBank",
             buy: "Mua chuyển khoản",
             sell: "Bán chuyển khoản",
-            hint: "VietinBank: Mua = USD chuyển khoản, Bán = USD bán. Lấy khung giờ mới nhất trong ngày."
+            hint: "VietinBank: Mua = USD chuyển khoản, Bán = USD bán. Mặc định là khung giờ mới nhất. Bấm nút cạnh ngày để chọn giờ khác."
         };
     }
 
@@ -1961,6 +2030,28 @@ function pickBidvSlot(list) {
 }
 
 
+function mapBidvSlots(list) {
+
+    var slots = [];
+    var i;
+
+    for (i = 0; i < list.length; i++) {
+
+        slots.push({
+            id: String(list[i].namerecord),
+            label: "Lần " + list[i].time + " · " + list[i].hour,
+            time: Number(list[i].time)
+        });
+    }
+
+    slots.sort(function (a, b) {
+        return b.time - a.time;
+    });
+
+    return slots;
+}
+
+
 function postBidv(url, body, callback) {
 
     var xhr;
@@ -2256,7 +2347,10 @@ function getBidvRatesAsync(dateStr, callback) {
                     callback(
                         {
                             buy: buy,
-                            sell: sell
+                            sell: sell,
+                            slots: mapBidvSlots(times.data),
+                            slotId: String(slot.namerecord),
+                            slotsLoaded: true
                         },
                         null
                     );
@@ -2280,6 +2374,23 @@ function stbRateValue(value) {
     }
 
     return String(value);
+}
+
+
+function mapStbSlots(list) {
+
+    var slots = [];
+    var i;
+
+    for (i = 0; i < list.length; i++) {
+
+        slots.push({
+            id: String(list[i]),
+            label: String(list[i])
+        });
+    }
+
+    return slots;
 }
 
 
@@ -2497,7 +2608,10 @@ function getStbRatesAsync(dateStr, callback) {
                     callback(
                         {
                             buy: buy,
-                            sell: sell
+                            sell: sell,
+                            slots: mapStbSlots(versions.data),
+                            slotId: String(latestTime),
+                            slotsLoaded: true
                         },
                         null
                     );
@@ -2552,6 +2666,61 @@ function latestVtbSlot(list) {
 }
 
 
+function vtbClockLabel(applyDate) {
+
+    var text = String(applyDate);
+    var at = text.indexOf("T");
+    var clock = at >= 0 ? text.substring(at + 1) : text;
+
+    if (clock.length >= 5) {
+        return clock.substring(0, 5);
+    }
+
+    return clock;
+}
+
+
+function mapVtbSlots(list) {
+
+    var slots = [];
+    var counts = {};
+    var i;
+    var at;
+
+    for (i = 0; i < list.length; i++) {
+
+        slots.push({
+            id: String(list[i].apply_date),
+            label: vtbClockLabel(list[i].apply_date),
+            time: String(list[i].apply_date)
+        });
+    }
+
+    slots.sort(function (a, b) {
+
+        if (a.time === b.time) {
+            return 0;
+        }
+
+        return a.time < b.time ? 1 : -1;
+    });
+
+    for (i = 0; i < slots.length; i++) {
+        counts[slots[i].label] = (counts[slots[i].label] || 0) + 1;
+    }
+
+    for (i = 0; i < slots.length; i++) {
+
+        if (counts[slots[i].label] > 1) {
+            at = slots[i].id.indexOf("T");
+            slots[i].label = at >= 0 ? slots[i].id.substring(at + 1) : slots[i].id;
+        }
+    }
+
+    return slots;
+}
+
+
 function vtbRateValue(value) {
 
     if (value == null || value === "" || value === 0 || value === "0") {
@@ -2587,7 +2756,7 @@ function postVtb(action, body, callback) {
 
         xhr.open(
             "POST",
-            "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
+            "https://www.vietinbank.vn/ty-gia-khdn",
             true
         );
 
@@ -2623,7 +2792,7 @@ function postVtb(action, body, callback) {
     try {
         xhr.setRequestHeader(
             "Referer",
-            "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
+            "https://www.vietinbank.vn/ty-gia-khdn"
         );
     } catch (e) {}
 
@@ -2760,7 +2929,7 @@ function discoverVtbActions(callback) {
     debugLog("VTB - Tìm lại mã server action");
 
     openMbRequest(
-        "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
+        "https://www.vietinbank.vn/ty-gia-khdn",
         [
             ["Accept", "text/html"],
             ["Referer", "https://www.vietinbank.vn/"]
@@ -2968,7 +3137,10 @@ function requestVtbRates(dateStr, retried, callback) {
                     callback(
                         {
                             buy: buy,
-                            sell: sell
+                            sell: sell,
+                            slots: mapVtbSlots(slots),
+                            slotId: String(slot.apply_date),
+                            slotsLoaded: true
                         },
                         null
                     );
@@ -3125,68 +3297,506 @@ function updateLoading(
    ADD RESULT ROW
 ========================================================= */
 
-function addResultRow(
-    dateStr,
-    buy,
-    sell
-) {
+function fetchBidvSlotAsync(dateStr, slotId, callback) {
 
-    var tbody =
-        document.getElementById(
-            "resultBody"
-        );
+    var bidvDate;
 
+    try {
 
-    var emptyRow =
-        document.getElementById(
-            "emptyRow"
-        );
+        var dateInfo = toApiDate(dateStr);
 
+        bidvDate =
+            dateInfo.day + "/" +
+            dateInfo.month + "/" +
+            dateInfo.year;
 
-    if (emptyRow) {
+    } catch (e) {
 
-        tbody.removeChild(
-            emptyRow
-        );
+        callback(null, e.message || e.description || String(e));
+        return;
     }
 
 
-    var tr =
-        document.createElement("tr");
+    postBidv(
+        "https://bidv.com.vn/ServicesBIDV/ExchangeDetailServlet",
+        "date=" + encodeURIComponent(bidvDate) +
+        "&time=" + encodeURIComponent(slotId),
+        function (xhr, error) {
+
+            if (error) {
+                callback(null, error);
+                return;
+            }
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+                callback(null, "HTTP " + xhr.status);
+                return;
+            }
+
+            var result;
+
+            try {
+                result = eval("(" + xhr.responseText + ")");
+            } catch (e2) {
+                callback(null, "Không đọc được JSON từ BIDV");
+                return;
+            }
+
+            var buy = null;
+            var sell = null;
+            var i;
+
+            if (result && result.data) {
+
+                for (i = 0; i < result.data.length; i++) {
+
+                    if (result.data[i].currency === "USD") {
+                        buy = normalizeBidvRate(result.data[i].muaCk);
+                        sell = normalizeBidvRate(result.data[i].ban);
+                        break;
+                    }
+                }
+            }
+
+            if (buy == null || sell == null || buy === "" || sell === "") {
+                callback(null, "Không tìm thấy tỷ giá USD chuyển khoản");
+                return;
+            }
+
+            callback({ buy: buy, sell: sell }, null);
+        }
+    );
+}
 
 
-    var tdDate =
-        document.createElement("td");
+function fetchStbSlotAsync(dateStr, slotId, callback) {
 
-    tdDate.innerText =
-        dateStr;
+    var isoDate;
+
+    try {
+        isoDate = toApiDate(dateStr).isoDate;
+    } catch (e) {
+        callback(null, e.message || e.description || String(e));
+        return;
+    }
+
+    var rateUrl =
+        "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
+        "_jcr_content.sacom.exchange-rate." +
+        isoDate + "." +
+        encodeURIComponent(slotId) +
+        ".json";
+
+    openMbRequest(
+        rateUrl,
+        [
+            ["Accept", "application/json, text/plain, */*"],
+            ["Referer", "https://www.sacombank.com.vn/cong-cu/ty-gia.html"]
+        ],
+        function (xhr, error) {
+
+            if (error) {
+                callback(null, error);
+                return;
+            }
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+                callback(null, "HTTP " + xhr.status);
+                return;
+            }
+
+            var result;
+
+            try {
+                result = eval("(" + xhr.responseText + ")");
+            } catch (e2) {
+                callback(null, "Không đọc được JSON từ Sacombank");
+                return;
+            }
+
+            var buy = null;
+            var sell = null;
+            var rows = result && result.statusCode === 200 && result.data ? result.data : [];
+            var i;
+
+            for (i = 0; i < rows.length; i++) {
+
+                if (rows[i].currencyCode === "USD") {
+                    buy = stbRateValue(rows[i].bidInTransfer);
+                    sell = stbRateValue(rows[i].offerInTransfer);
+                    break;
+                }
+            }
+
+            if (buy == null || sell == null || buy === "" || sell === "") {
+                callback(null, "Không tìm thấy tỷ giá USD chuyển khoản");
+                return;
+            }
+
+            callback({ buy: buy, sell: sell }, null);
+        }
+    );
+}
 
 
-    var tdBuy =
-        document.createElement("td");
+function fetchVtbSlotAsync(slotId, callback) {
 
-    tdBuy.innerText =
-        buy;
+    postVtb(
+        vtbActions.rates,
+        "[\"" + slotId + "\",[\"USD\"]]",
+        function (xhr, error) {
+
+            if (error) {
+                callback(null, error);
+                return;
+            }
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+                callback(null, "HTTP " + xhr.status);
+                return;
+            }
+
+            var rows = parseVtbPayload(xhr.responseText);
+            var buy = null;
+            var sell = null;
+            var i;
+
+            if (rows) {
+
+                for (i = 0; i < rows.length; i++) {
+
+                    if (rows[i].currency_code === "USD") {
+                        buy = vtbRateValue(rows[i].transfer_rate);
+                        sell = vtbRateValue(rows[i].sell_rate);
+                        break;
+                    }
+                }
+            }
+
+            if (buy == null || sell == null || buy === "" || sell === "") {
+                callback(null, "Không tìm thấy tỷ giá USD chuyển khoản");
+                return;
+            }
+
+            callback({ buy: buy, sell: sell }, null);
+        }
+    );
+}
 
 
-    var tdSell =
-        document.createElement("td");
+function fetchSlotRateAsync(bank, dateStr, slotId, callback) {
 
-    tdSell.innerText =
-        sell;
+    if (bank === "bidv") {
+        fetchBidvSlotAsync(dateStr, slotId, callback);
+        return;
+    }
+
+    if (bank === "stb") {
+        fetchStbSlotAsync(dateStr, slotId, callback);
+        return;
+    }
+
+    if (bank === "vtb") {
+        fetchVtbSlotAsync(slotId, callback);
+        return;
+    }
+
+    callback(null, "Ngân hàng không có nhiều khung giờ");
+}
 
 
+function bankHasSlotChoice(bank) {
+
+    return bank === "bidv" || bank === "stb" || bank === "vtb";
+}
+
+
+function findSlotLabel(slots, id) {
+
+    var i;
+
+    if (!slots) {
+        return "";
+    }
+
+    for (i = 0; i < slots.length; i++) {
+
+        if (slots[i].id === id) {
+            return slots[i].label;
+        }
+    }
+
+    return "";
+}
+
+
+function rowNeedsSlotButton(row) {
+
+    if (!row || row[1] === "Lỗi" || row[2] === "Lỗi") {
+        return false;
+    }
+
+    if (!bankHasSlotChoice(row.bank)) {
+        return false;
+    }
+
+    if (row.slotsLoaded && (!row.slots || row.slots.length < 2)) {
+        return false;
+    }
+
+    return true;
+}
+
+
+function pushResult(dateStr, rate) {
+
+    var row = [dateStr, rate.buy, rate.sell];
+
+    row.bank = activeBank;
+    row.slots = rate.slots || null;
+    row.slotId = rate.slotId || "";
+    row.slotsLoaded = !!rate.slotsLoaded;
+
+    if (row.slots) {
+        slotCache[activeBank + "|" + dateStr] = row.slots;
+    }
+
+    results.push(row);
+    addResultRow(results.length - 1);
+}
+
+
+function addResultRow(index) {
+
+    var tbody = document.getElementById("resultBody");
+    var emptyRow = document.getElementById("emptyRow");
+    var row = results[index];
+    var tr = document.createElement("tr");
+    var tdDate = document.createElement("td");
+    var tdBuy = document.createElement("td");
+    var tdSell = document.createElement("td");
+    var dateText = document.createElement("span");
+
+    if (emptyRow) {
+        tbody.removeChild(emptyRow);
+    }
+
+    tr.id = "resultRow" + index;
+    tr.className = "data-row" + (index % 2 ? " alt" : "");
+    tdDate.id = "dateCell" + index;
+    tdBuy.id = "buyCell" + index;
+    tdSell.id = "sellCell" + index;
+    dateText.className = "date-text";
+    dateText.innerText = row[0];
+    tdBuy.innerText = row[1];
+    tdSell.innerText = row[2];
+    tdDate.appendChild(dateText);
     tr.appendChild(tdDate);
-
     tr.appendChild(tdBuy);
-
     tr.appendChild(tdSell);
-
-
     tbody.appendChild(tr);
-
-
+    refreshSlotButton(index);
     updateResultCount();
+}
+
+
+function refreshSlotButton(index) {
+
+    var row = results[index];
+    var btn = document.getElementById("slotBtn" + index);
+    var dateCell;
+    var label;
+
+    if (!rowNeedsSlotButton(row)) {
+
+        if (btn && btn.parentNode) {
+            btn.parentNode.removeChild(btn);
+        }
+
+        return;
+    }
+
+    if (!btn) {
+
+        dateCell = document.getElementById("dateCell" + index);
+        btn = document.createElement("button");
+        btn.className = "slot-btn";
+        btn.id = "slotBtn" + index;
+        btn.onclick = function () {
+            openSlotMenu(index);
+        };
+        dateCell.appendChild(btn);
+    }
+
+    label = findSlotLabel(row.slots, row.slotId);
+    btn.innerText = (label || (row.bank === "bidv" ? "Chọn lần" : "Chọn giờ")) + " ▾";
+    btn.disabled = !!row.loading;
+    btn.title = row.bank === "bidv" ? "Chọn lần công bố khác" : "Chọn khung giờ khác";
+}
+
+
+function paintRowValues(index) {
+
+    var row = results[index];
+
+    document.getElementById("buyCell" + index).innerText = row[1];
+    document.getElementById("sellCell" + index).innerText = row[2];
+}
+
+
+function closeSlotMenu() {
+
+    var existing = document.getElementById("slotRow");
+
+    if (existing && existing.parentNode) {
+        existing.parentNode.removeChild(existing);
+    }
+}
+
+
+function createSlotOption(index, slot, selectedId) {
+
+    var button = document.createElement("button");
+
+    button.className = "slot-option" + (slot.id === selectedId ? " current" : "");
+    button.setAttribute("data-slot", slot.id);
+    button.innerText = slot.label;
+    button.disabled = !!results[index].loading;
+    button.onclick = function () {
+        selectSlot(index, slot.id);
+    };
+
+    return button;
+}
+
+
+function renderSlotMenu(index) {
+
+    var row = results[index];
+    var dataTr = document.getElementById("resultRow" + index);
+    var tr = document.createElement("tr");
+    var td = document.createElement("td");
+    var note = document.createElement("div");
+    var menu = document.createElement("div");
+    var i;
+
+    closeSlotMenu();
+
+    tr.id = "slotRow";
+    tr.className = "slot-row";
+    tr.setAttribute("data-index", String(index));
+    td.colSpan = 3;
+    td.className = "slot-cell";
+    note.className = "slot-note";
+    note.innerText = row.bank === "bidv" ? "Chọn lần công bố trong ngày" : "Chọn khung giờ trong ngày";
+    menu.className = "slot-menu";
+
+    for (i = 0; i < row.slots.length; i++) {
+        menu.appendChild(createSlotOption(index, row.slots[i], row.slotId));
+    }
+
+    td.appendChild(note);
+    td.appendChild(menu);
+    tr.appendChild(td);
+
+    if (dataTr.nextSibling) {
+        dataTr.parentNode.insertBefore(tr, dataTr.nextSibling);
+    } else {
+        dataTr.parentNode.appendChild(tr);
+    }
+}
+
+
+function refreshSlotMenuSelection(index) {
+
+    var menu = document.getElementById("slotRow");
+    var buttons;
+    var i;
+    var row;
+
+    if (!menu || menu.getAttribute("data-index") !== String(index)) {
+        return;
+    }
+
+    row = results[index];
+    buttons = menu.getElementsByTagName("button");
+
+    for (i = 0; i < buttons.length; i++) {
+
+        buttons[i].className = "slot-option" +
+            (buttons[i].getAttribute("data-slot") === row.slotId ? " current" : "");
+        buttons[i].disabled = !!row.loading;
+    }
+}
+
+
+function openSlotMenu(index) {
+
+    var row = results[index];
+    var existing = document.getElementById("slotRow");
+
+    if (!row || row.loading) {
+        return;
+    }
+
+    if (existing && existing.getAttribute("data-index") === String(index)) {
+        closeSlotMenu();
+        return;
+    }
+
+    if (!row.slots || row.slots.length < 2) {
+
+        document.getElementById("status").innerText =
+            row[0] + " chỉ có một " +
+            (row.bank === "bidv" ? "lần công bố." : "khung giờ.");
+        return;
+    }
+
+    renderSlotMenu(index);
+}
+
+
+function selectSlot(index, slotId) {
+
+    var row = results[index];
+
+    if (!row || row.loading) {
+        return;
+    }
+
+    if (row.slotId === slotId) {
+        refreshSlotMenuSelection(index);
+        return;
+    }
+
+    row.loading = true;
+    refreshSlotButton(index);
+    refreshSlotMenuSelection(index);
+
+    fetchSlotRateAsync(row.bank, row[0], slotId, function (rate, error) {
+
+        if (!results[index] || results[index] !== row) {
+            return;
+        }
+
+        row.loading = false;
+
+        if (error) {
+            refreshSlotButton(index);
+            refreshSlotMenuSelection(index);
+            alert(row[0] + ": " + error);
+            return;
+        }
+
+        row[1] = rate.buy;
+        row[2] = rate.sell;
+        row.slotId = slotId;
+        paintRowValues(index);
+        refreshSlotButton(index);
+        refreshSlotMenuSelection(index);
+        document.getElementById("status").innerText =
+            row[0] + " — " + findSlotLabel(row.slots, slotId);
+    });
 }
 
 
@@ -3218,8 +3828,8 @@ function updateResultCount() {
     ) {
 
         if (
-            rows[i].id !==
-            "emptyRow"
+            rows[i].id !== "emptyRow" &&
+            rows[i].id !== "slotRow"
         ) {
 
             count++;
@@ -3361,6 +3971,8 @@ function run() {
 
 
     results = [];
+
+    slotCache = {};
 
 
     var cache = {};
@@ -3538,18 +4150,7 @@ function processNext(
             cache[d];
 
 
-        results.push([
-            d,
-            cached.buy,
-            cached.sell
-        ]);
-
-
-        addResultRow(
-            d,
-            cached.buy,
-            cached.sell
-        );
+        pushResult(d, cached);
 
 
         updateMainProgress(
@@ -3611,18 +4212,7 @@ function processNext(
                 rate;
 
 
-            results.push([
-                d,
-                rate.buy,
-                rate.sell
-            ]);
-
-
-            addResultRow(
-                d,
-                rate.buy,
-                rate.sell
-            );
+            pushResult(d, rate);
 
 
             updateMainProgress(
@@ -3847,6 +4437,8 @@ function clearAll() {
 
 
     results = [];
+
+    slotCache = {};
 }
 
 
@@ -4063,7 +4655,7 @@ function toggleDebug() {
                     </table>
                 </div>
 
-                <p class="help" style="margin:10px 0 0 0;">Bôi đen bảng rồi Ctrl+C, hoặc bấm Copy Excel để dán sang Excel.</p>
+                <p class="help" style="margin:10px 0 0 0;">Bôi đen bảng rồi Ctrl+C, hoặc bấm Copy Excel để dán sang Excel. Với BIDV, Sacombank và VietinBank, bấm nút cạnh ngày để chọn lần hoặc khung giờ khác; số ban đầu vẫn là lần mới nhất.</p>
             </div>
         </div>
 

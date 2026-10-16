@@ -3,6 +3,7 @@
 var bankTables = {};
 
 var results = [];
+var slotCache = {};
 var running = false;
 var cancelled = false;
 var activeBank = "acb";
@@ -88,7 +89,7 @@ function bankMeta(bank) {
             name: "BIDV",
             buy: "Mua chuyển khoản",
             sell: "Bán chuyển khoản",
-            hint: "BIDV: Mua = USD chuyển khoản, Bán = USD bán. Lấy lần công bố mới nhất trong ngày."
+            hint: "BIDV: Mua = USD chuyển khoản, Bán = USD bán. Mặc định là lần công bố mới nhất. Bấm nút cạnh ngày để chọn lần khác."
         };
     }
 
@@ -97,7 +98,7 @@ function bankMeta(bank) {
             name: "Sacombank",
             buy: "Mua chuyển khoản",
             sell: "Bán chuyển khoản",
-            hint: "Sacombank: Mua = USD chuyển khoản, Bán = USD chuyển khoản. Lấy khung giờ mới nhất trong ngày."
+            hint: "Sacombank: Mua = USD chuyển khoản, Bán = USD chuyển khoản. Mặc định là khung giờ mới nhất. Bấm nút cạnh ngày để chọn giờ khác."
         };
     }
 
@@ -106,7 +107,7 @@ function bankMeta(bank) {
             name: "VietinBank",
             buy: "Mua chuyển khoản",
             sell: "Bán chuyển khoản",
-            hint: "VietinBank: Mua = USD chuyển khoản, Bán = USD bán. Lấy khung giờ mới nhất trong ngày."
+            hint: "VietinBank: Mua = USD chuyển khoản, Bán = USD bán. Mặc định là khung giờ mới nhất. Bấm nút cạnh ngày để chọn giờ khác."
         };
     }
 
@@ -320,6 +321,20 @@ async function callProxy(payload) {
         body: JSON.stringify(payload),
         credentials: "omit"
     });
+
+    return readProxyResponse(response);
+}
+
+async function httpGet(url) {
+    try {
+        return await directRequest("GET", url, { Accept: "application/json, text/plain, */*" }, null);
+    } catch (error) {
+        debugLog("GET trực tiếp lỗi: " + (error.message || error));
+        return jinaGet(url);
+    }
+}
+
+async function readProxyResponse(response) {
     var text = unwrapText(await response.text());
     var data;
 
@@ -339,13 +354,36 @@ async function callProxy(payload) {
     };
 }
 
-async function httpGet(url) {
-    try {
-        return await directRequest("GET", url, { Accept: "application/json, text/plain, */*" }, null);
-    } catch (error) {
-        debugLog("GET trực tiếp lỗi: " + (error.message || error));
-        return jinaGet(url);
+async function callLocalVtb(payload) {
+    var endpoints = ["/api/vtb", "http://127.0.0.1:8787/api/vtb"];
+    var lastError = null;
+    var i;
+
+    for (i = 0; i < endpoints.length; i++) {
+        try {
+            debugLog("VietinBank — gọi qua máy cục bộ: " + endpoints[i]);
+
+            var response = await fetch(endpoints[i], {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify(payload),
+                credentials: "omit"
+            });
+
+            if (!response.ok) {
+                throw new Error("HTTP " + response.status);
+            }
+
+            return await readProxyResponse(response);
+        } catch (error) {
+            lastError = error;
+            debugLog("Proxy cục bộ lỗi: " + (error.message || error));
+        }
     }
+
+    throw lastError || new Error("Không kết nối được proxy VietinBank");
 }
 
 async function httpPost(url, headers, body, proxyPayload) {
@@ -354,7 +392,11 @@ async function httpPost(url, headers, body, proxyPayload) {
     } catch (error) {
         debugLog("POST trực tiếp lỗi: " + (error.message || error));
 
-        if (PROXY_URL && proxyPayload) {
+        if (proxyPayload && proxyPayload.op === "vtb") {
+            return callLocalVtb(proxyPayload);
+        }
+
+        if (typeof PROXY_URL !== "undefined" && PROXY_URL && proxyPayload) {
             return callProxy(proxyPayload);
         }
 
@@ -577,20 +619,42 @@ function pickBidvSlot(list) {
     return latest;
 }
 
-async function getBidvRates(dateStr) {
-    var dateInfo = toApiDate(dateStr);
-    var bidvDate = dateInfo.day + "/" + dateInfo.month + "/" + dateInfo.year;
-    var headers = {
+function mapBidvSlots(list) {
+    var slots = [];
+    var i;
+
+    for (i = 0; i < list.length; i++) {
+        slots.push({
+            id: String(list[i].namerecord),
+            label: "Lần " + list[i].time + " · " + list[i].hour,
+            time: Number(list[i].time)
+        });
+    }
+
+    slots.sort(function (a, b) {
+        return b.time - a.time;
+    });
+
+    return slots;
+}
+
+function bidvHeaders() {
+    return {
         Accept: "application/json, text/plain, */*",
         "Content-Type": "application/x-www-form-urlencoded"
     };
+}
 
-    debugLog("BIDV " + dateStr);
+async function loadBidvSlots(dateStr) {
+    var bidvDate = toApiDate(dateStr);
+    var day = bidvDate.day + "/" + bidvDate.month + "/" + bidvDate.year;
+
+    debugLog("BIDV danh sách lần " + dateStr);
 
     var timesResponse = await httpPost(
         "https://bidv.com.vn/ServicesBIDV/ExchangeDetailSearchTimeServlet",
-        headers,
-        "date=" + encodeURIComponent(bidvDate)
+        bidvHeaders(),
+        "date=" + encodeURIComponent(day)
     );
 
     ensureOk(timesResponse, "BIDV");
@@ -601,13 +665,19 @@ async function getBidvRates(dateStr) {
         throw new Error("Không có tỷ giá BIDV cho ngày này");
     }
 
-    var slot = pickBidvSlot(times.data);
-    debugLog("BIDV lần " + slot.time + " lúc " + slot.hour);
+    return mapBidvSlots(times.data);
+}
+
+async function fetchBidvBySlot(dateStr, slotId) {
+    var bidvDate = toApiDate(dateStr);
+    var day = bidvDate.day + "/" + bidvDate.month + "/" + bidvDate.year;
+
+    debugLog("BIDV lần " + slotId);
 
     var detailResponse = await httpPost(
         "https://bidv.com.vn/ServicesBIDV/ExchangeDetailServlet",
-        headers,
-        "date=" + encodeURIComponent(bidvDate) + "&time=" + encodeURIComponent(slot.namerecord)
+        bidvHeaders(),
+        "date=" + encodeURIComponent(day) + "&time=" + encodeURIComponent(slotId)
     );
 
     ensureOk(detailResponse, "BIDV");
@@ -616,8 +686,9 @@ async function getBidvRates(dateStr) {
     var buy = null;
     var sell = null;
     var rows = result && result.data ? result.data : [];
+    var i;
 
-    for (var i = 0; i < rows.length; i++) {
+    for (i = 0; i < rows.length; i++) {
         if (rows[i].currency === "USD") {
             buy = normalizeBidvRate(rows[i].muaCk);
             sell = normalizeBidvRate(rows[i].ban);
@@ -629,12 +700,114 @@ async function getBidvRates(dateStr) {
     return requirePair(buy, sell);
 }
 
+async function getBidvRates(dateStr) {
+    var bidvDate = toApiDate(dateStr);
+    var day = bidvDate.day + "/" + bidvDate.month + "/" + bidvDate.year;
+
+    debugLog("BIDV " + dateStr);
+
+    var timesResponse = await httpPost(
+        "https://bidv.com.vn/ServicesBIDV/ExchangeDetailSearchTimeServlet",
+        bidvHeaders(),
+        "date=" + encodeURIComponent(day)
+    );
+
+    ensureOk(timesResponse, "BIDV");
+
+    var times = parseJson(timesResponse.responseText, "BIDV");
+
+    if (!times || times.status !== 1 || !times.data || !times.data.length) {
+        throw new Error("Không có tỷ giá BIDV cho ngày này");
+    }
+
+    var slot = pickBidvSlot(times.data);
+    var slots = mapBidvSlots(times.data);
+
+    debugLog("BIDV lần " + slot.time + " lúc " + slot.hour);
+
+    var rate = await fetchBidvBySlot(dateStr, String(slot.namerecord));
+
+    rate.slots = slots;
+    rate.slotId = String(slot.namerecord);
+    rate.slotsLoaded = true;
+    rate.slotConfirmed = true;
+    return rate;
+}
+
 function stbRateValue(value) {
     if (value == null || value === "" || value === 0 || value === "0") {
         return "";
     }
 
     return String(value);
+}
+
+function mapStbSlots(list) {
+    var slots = [];
+    var i;
+
+    for (i = 0; i < list.length; i++) {
+        slots.push({
+            id: String(list[i]),
+            label: String(list[i])
+        });
+    }
+
+    return slots;
+}
+
+async function loadStbSlots(dateStr) {
+    var isoDate = toApiDate(dateStr).isoDate;
+    var versionsUrl =
+        "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
+        "_jcr_content.sacom.exchange-rate.versions." +
+        isoDate +
+        ".json";
+
+    debugLog("Sacombank danh sách giờ " + dateStr);
+
+    var versionsResponse = await httpGet(versionsUrl);
+    ensureOk(versionsResponse, "Sacombank");
+
+    var versions = parseJson(versionsResponse.responseText, "Sacombank");
+
+    if (!versions || versions.statusCode !== 200 || !versions.data || !versions.data.length) {
+        throw new Error("Không có tỷ giá Sacombank cho ngày này");
+    }
+
+    return mapStbSlots(versions.data);
+}
+
+async function fetchStbBySlot(dateStr, slotId) {
+    var isoDate = toApiDate(dateStr).isoDate;
+    var rateUrl =
+        "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
+        "_jcr_content.sacom.exchange-rate." +
+        isoDate + "." +
+        encodeURIComponent(slotId) +
+        ".json";
+
+    debugLog("Sacombank khung giờ " + slotId);
+
+    var rateResponse = await httpGet(rateUrl);
+    ensureOk(rateResponse, "Sacombank");
+
+    var result = parseJson(rateResponse.responseText, "Sacombank");
+    var buy = null;
+    var sell = null;
+    var rows = result && result.statusCode === 200 && result.data ? result.data : [];
+    var i;
+
+    for (i = 0; i < rows.length; i++) {
+        if (rows[i].currencyCode === "USD") {
+            buy = stbRateValue(rows[i].bidInTransfer);
+            sell = stbRateValue(rows[i].offerInTransfer);
+            break;
+        }
+    }
+
+    debugLog("Sacombank BUY=" + buy + " SELL=" + sell);
+    return requirePair(buy, sell);
 }
 
 async function getStbRates(dateStr) {
@@ -651,55 +824,24 @@ async function getStbRates(dateStr) {
     }
 
     if (saved) {
+        saved.slotsLoaded = false;
         return saved;
     }
 
-    var isoDate = toApiDate(dateStr).isoDate;
-    var versionsUrl =
-        "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
-        "_jcr_content.sacom.exchange-rate.versions." +
-        isoDate +
-        ".json";
-
     debugLog("Sacombank " + dateStr);
 
-    var versionsResponse = await httpGet(versionsUrl);
-    ensureOk(versionsResponse, "Sacombank");
+    var slots = await loadStbSlots(dateStr);
+    var latestTime = slots[0].id;
 
-    var versions = parseJson(versionsResponse.responseText, "Sacombank");
-
-    if (!versions || versions.statusCode !== 200 || !versions.data || !versions.data.length) {
-        throw new Error("Không có tỷ giá Sacombank cho ngày này");
-    }
-
-    var latestTime = versions.data[0];
     debugLog("Sacombank khung giờ " + latestTime);
 
-    var rateUrl =
-        "https://www.sacombank.com.vn/cong-cu/ty-gia/" +
-        "_jcr_content.sacom.exchange-rate." +
-        isoDate + "." +
-        encodeURIComponent(latestTime) +
-        ".json";
+    var rate = await fetchStbBySlot(dateStr, latestTime);
 
-    var rateResponse = await httpGet(rateUrl);
-    ensureOk(rateResponse, "Sacombank");
-
-    var result = parseJson(rateResponse.responseText, "Sacombank");
-    var buy = null;
-    var sell = null;
-    var rows = result && result.statusCode === 200 && result.data ? result.data : [];
-
-    for (var i = 0; i < rows.length; i++) {
-        if (rows[i].currencyCode === "USD") {
-            buy = stbRateValue(rows[i].bidInTransfer);
-            sell = stbRateValue(rows[i].offerInTransfer);
-            break;
-        }
-    }
-
-    debugLog("Sacombank BUY=" + buy + " SELL=" + sell);
-    return requirePair(buy, sell);
+    rate.slots = slots;
+    rate.slotId = latestTime;
+    rate.slotsLoaded = true;
+    rate.slotConfirmed = true;
+    return rate;
 }
 
 function parseVtbPayload(text) {
@@ -728,6 +870,117 @@ function latestVtbSlot(list) {
     return best;
 }
 
+function vtbClockLabel(applyDate) {
+    var text = String(applyDate);
+    var at = text.indexOf("T");
+    var clock = at >= 0 ? text.substring(at + 1) : text;
+
+    if (clock.length >= 5) {
+        return clock.substring(0, 5);
+    }
+
+    return clock;
+}
+
+function mapVtbSlots(list) {
+    var slots = [];
+    var counts = {};
+    var i;
+
+    for (i = 0; i < list.length; i++) {
+        slots.push({
+            id: String(list[i].apply_date),
+            label: vtbClockLabel(list[i].apply_date),
+            time: String(list[i].apply_date)
+        });
+    }
+
+    slots.sort(function (a, b) {
+        if (a.time === b.time) {
+            return 0;
+        }
+
+        return a.time < b.time ? 1 : -1;
+    });
+
+    for (i = 0; i < slots.length; i++) {
+        counts[slots[i].label] = (counts[slots[i].label] || 0) + 1;
+    }
+
+    for (i = 0; i < slots.length; i++) {
+        if (counts[slots[i].label] > 1) {
+            var at = slots[i].id.indexOf("T");
+            slots[i].label = at >= 0 ? slots[i].id.substring(at + 1) : slots[i].id;
+        }
+    }
+
+    return slots;
+}
+
+async function readVtbList(action, body) {
+    var response = await postVtb(action, body);
+
+    if (response.status >= 200 && response.status < 300) {
+        var parsed = parseVtbPayload(response.responseText);
+
+        if (parsed) {
+            return parsed;
+        }
+    }
+
+    await discoverVtbActions();
+
+    response = await postVtb(action, body);
+    ensureOk(response, "VietinBank");
+
+    var retried = parseVtbPayload(response.responseText);
+
+    if (!retried) {
+        throw new Error("Không đọc được dữ liệu VietinBank");
+    }
+
+    return retried;
+}
+
+async function loadVtbSlots(dateStr) {
+    var isoDate = toApiDate(dateStr).isoDate;
+
+    debugLog("VietinBank danh sách giờ " + dateStr);
+
+    var list = await readVtbList(vtbActions.times, "[\"" + isoDate + "\"]");
+
+    if (!list || !list.length) {
+        throw new Error("Không có tỷ giá VietinBank cho ngày này");
+    }
+
+    return mapVtbSlots(list);
+}
+
+async function fetchVtbBySlot(slotId) {
+    debugLog("VietinBank khung giờ " + slotId);
+
+    var rows = await readVtbList(
+        vtbActions.rates,
+        "[\"" + slotId + "\",[\"USD\"]]"
+    );
+    var buy = null;
+    var sell = null;
+    var i;
+
+    rows = rows || [];
+
+    for (i = 0; i < rows.length; i++) {
+        if (rows[i].currency_code === "USD") {
+            buy = vtbRateValue(rows[i].transfer_rate);
+            sell = vtbRateValue(rows[i].sell_rate);
+            break;
+        }
+    }
+
+    debugLog("VietinBank BUY=" + buy + " SELL=" + sell);
+    return requirePair(buy, sell);
+}
+
 function vtbRateValue(value) {
     if (value == null || value === "" || value === 0 || value === "0") {
         return "";
@@ -738,7 +991,7 @@ function vtbRateValue(value) {
 
 async function postVtb(action, body) {
     return httpPost(
-        "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
+        "https://www.vietinbank.vn/ty-gia-khdn",
         {
             Accept: "text/x-component",
             "Content-Type": "text/plain;charset=UTF-8",
@@ -802,7 +1055,7 @@ function extractVtbChunks(html) {
 async function discoverVtbActions() {
     debugLog("VietinBank — tìm lại mã server action");
 
-    var page = await httpGet("https://www.vietinbank.vn/ca-nhan/ty-gia-khcn");
+    var page = await httpGet("https://www.vietinbank.vn/ty-gia-khdn");
     ensureOk(page, "VietinBank");
 
     var chunks = extractVtbChunks(page.responseText);
@@ -836,6 +1089,7 @@ async function requestVtbRates(dateStr) {
     var saved = await rateFromTable("vtb", dateStr);
 
     if (saved) {
+        saved.slotsLoaded = false;
         return saved;
     }
 
@@ -912,29 +1166,381 @@ function clearResultsTable() {
     document.getElementById("resultCount").textContent = "0 dòng";
 }
 
-function addResultRow(dateStr, buy, sell) {
+function bankHasSlotChoice(bank) {
+    return bank === "bidv" || bank === "stb" || bank === "vtb";
+}
+
+function findSlotLabel(slots, id) {
+    var i;
+
+    if (!slots) {
+        return "";
+    }
+
+    for (i = 0; i < slots.length; i++) {
+        if (slots[i].id === id) {
+            return slots[i].label;
+        }
+    }
+
+    return "";
+}
+
+function rowNeedsSlotButton(row) {
+    if (!row || row[1] === "Lỗi" || row[2] === "Lỗi") {
+        return false;
+    }
+
+    if (!bankHasSlotChoice(row.bank)) {
+        return false;
+    }
+
+    if (row.slotsLoaded && (!row.slots || row.slots.length < 2)) {
+        return false;
+    }
+
+    return true;
+}
+
+function pushResult(dateStr, rate) {
+    var row = [dateStr, rate.buy, rate.sell];
+
+    row.bank = activeBank;
+    row.slots = rate.slots || null;
+    row.slotId = rate.slotId || "";
+    row.slotsLoaded = !!rate.slotsLoaded;
+    row.slotConfirmed = !!rate.slotConfirmed;
+
+    if (row.slots) {
+        slotCache[activeBank + "|" + dateStr] = row.slots;
+    }
+
+    results.push(row);
+    addResultRow(results.length - 1);
+}
+
+function addResultRow(index) {
     var tbody = document.getElementById("resultBody");
     var emptyRow = document.getElementById("emptyRow");
+    var row = results[index];
+    var tr = document.createElement("tr");
+    var tdDate = document.createElement("td");
+    var tdBuy = document.createElement("td");
+    var tdSell = document.createElement("td");
+    var dateText = document.createElement("span");
 
     if (emptyRow) {
         tbody.removeChild(emptyRow);
     }
 
-    var tr = document.createElement("tr");
-    var tdDate = document.createElement("td");
-    var tdBuy = document.createElement("td");
-    var tdSell = document.createElement("td");
-
-    tdDate.textContent = dateStr;
-    tdBuy.textContent = buy;
-    tdSell.textContent = sell;
+    tr.id = "resultRow" + index;
+    tr.className = "data-row" + (index % 2 ? " alt" : "");
+    tdDate.id = "dateCell" + index;
+    tdBuy.id = "buyCell" + index;
+    tdSell.id = "sellCell" + index;
+    dateText.className = "date-text";
+    dateText.textContent = row[0];
+    tdBuy.textContent = row[1];
+    tdSell.textContent = row[2];
+    tdDate.appendChild(dateText);
     tr.appendChild(tdDate);
     tr.appendChild(tdBuy);
     tr.appendChild(tdSell);
     tbody.appendChild(tr);
+    refreshSlotButton(index);
+    document.getElementById("resultCount").textContent = results.length + " dòng";
+}
 
-    var count = tbody.querySelectorAll("tr").length;
-    document.getElementById("resultCount").textContent = count + " dòng";
+function refreshSlotButton(index) {
+    var row = results[index];
+    var btn = document.getElementById("slotBtn" + index);
+    var dateCell;
+    var label;
+
+    if (!rowNeedsSlotButton(row)) {
+        if (btn && btn.parentNode) {
+            btn.parentNode.removeChild(btn);
+        }
+        return;
+    }
+
+    if (!btn) {
+        dateCell = document.getElementById("dateCell" + index);
+        btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slot-btn";
+        btn.id = "slotBtn" + index;
+        btn.onclick = function () {
+            openSlotMenu(index);
+        };
+        dateCell.appendChild(btn);
+    }
+
+    label = findSlotLabel(row.slots, row.slotId);
+    btn.textContent = (label || (row.bank === "bidv" ? "Chọn lần" : "Chọn giờ")) + " ▾";
+    btn.disabled = !!row.loading;
+    btn.title = row.bank === "bidv" ? "Chọn lần công bố khác" : "Chọn khung giờ khác";
+}
+
+function paintRowValues(index) {
+    var row = results[index];
+    document.getElementById("buyCell" + index).textContent = row[1];
+    document.getElementById("sellCell" + index).textContent = row[2];
+}
+
+function readableSlotError(bank, error) {
+    var message = error && error.message ? error.message : String(error);
+
+    if (
+        bank === "vtb" &&
+        /CORS|Failed to fetch|NetworkError|chặn/i.test(message)
+    ) {
+        return "Trình duyệt không gọi thẳng được VietinBank. Chạy node scripts/serve.js rồi mở http://127.0.0.1:8787 — hoặc dùng app HTA.";
+    }
+
+    return message;
+}
+
+function closeSlotMenu() {
+    var existing = document.getElementById("slotRow");
+
+    if (existing && existing.parentNode) {
+        existing.parentNode.removeChild(existing);
+    }
+}
+
+function renderSlotMenu(index) {
+    var row = results[index];
+    var dataTr = document.getElementById("resultRow" + index);
+    var tr = document.createElement("tr");
+    var td = document.createElement("td");
+    var note = document.createElement("div");
+    var menu = document.createElement("div");
+    var i;
+
+    closeSlotMenu();
+
+    tr.id = "slotRow";
+    tr.className = "slot-row";
+    tr.setAttribute("data-index", String(index));
+    td.colSpan = 3;
+    td.className = "slot-cell";
+    note.className = "slot-note";
+    note.textContent = row.bank === "bidv" ? "Chọn lần công bố trong ngày" : "Chọn khung giờ trong ngày";
+    menu.className = "slot-menu";
+
+    for (i = 0; i < row.slots.length; i++) {
+        menu.appendChild(createSlotOption(index, row.slots[i], row.slotId));
+    }
+
+    td.appendChild(note);
+    td.appendChild(menu);
+    tr.appendChild(td);
+
+    if (dataTr.nextSibling) {
+        dataTr.parentNode.insertBefore(tr, dataTr.nextSibling);
+    } else {
+        dataTr.parentNode.appendChild(tr);
+    }
+}
+
+function createSlotOption(index, slot, selectedId) {
+    var button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "slot-option" + (slot.id === selectedId ? " current" : "");
+    button.setAttribute("data-slot", slot.id);
+    button.textContent = slot.label;
+    button.disabled = !!results[index].loading;
+    button.onclick = function () {
+        selectSlot(index, slot.id);
+    };
+
+    return button;
+}
+
+function refreshSlotMenuSelection(index) {
+    var menu = document.getElementById("slotRow");
+    var buttons;
+    var i;
+    var row;
+
+    if (!menu || menu.getAttribute("data-index") !== String(index)) {
+        return;
+    }
+
+    row = results[index];
+    buttons = menu.getElementsByTagName("button");
+
+    for (i = 0; i < buttons.length; i++) {
+        buttons[i].className = "slot-option" +
+            (buttons[i].getAttribute("data-slot") === row.slotId ? " current" : "");
+        buttons[i].disabled = !!row.loading;
+    }
+}
+
+async function loadSlotsForBank(bank, dateStr) {
+    if (bank === "bidv") {
+        return loadBidvSlots(dateStr);
+    }
+
+    if (bank === "stb") {
+        return loadStbSlots(dateStr);
+    }
+
+    if (bank === "vtb") {
+        return loadVtbSlots(dateStr);
+    }
+
+    return [];
+}
+
+async function fetchSlotRate(bank, dateStr, slotId) {
+    if (bank === "bidv") {
+        return fetchBidvBySlot(dateStr, slotId);
+    }
+
+    if (bank === "stb") {
+        return fetchStbBySlot(dateStr, slotId);
+    }
+
+    if (bank === "vtb") {
+        return fetchVtbBySlot(slotId);
+    }
+
+    throw new Error("Ngân hàng không có nhiều khung giờ");
+}
+
+async function ensureRowSlots(index) {
+    var row = results[index];
+    var key = row.bank + "|" + row[0];
+    var slots;
+
+    if (row.slotsLoaded && row.slots) {
+        return row.slots;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(slotCache, key)) {
+        slots = slotCache[key];
+    } else {
+        slots = await loadSlotsForBank(row.bank, row[0]);
+        slotCache[key] = slots;
+    }
+
+    if (results[index] !== row) {
+        return slots;
+    }
+
+    row.slots = slots;
+    row.slotsLoaded = true;
+
+    if (!row.slotId && slots.length) {
+        row.slotId = slots[0].id;
+    }
+
+    return slots;
+}
+
+async function openSlotMenu(index) {
+    var row = results[index];
+    var existing = document.getElementById("slotRow");
+
+    if (!row || row.loading) {
+        return;
+    }
+
+    if (existing && existing.getAttribute("data-index") === String(index)) {
+        closeSlotMenu();
+        return;
+    }
+
+    closeSlotMenu();
+    row.loading = true;
+    refreshSlotButton(index);
+
+    try {
+        await ensureRowSlots(index);
+    } catch (error) {
+        if (results[index] === row) {
+            row.loading = false;
+            refreshSlotButton(index);
+            window.alert(row[0] + ": " + readableSlotError(row.bank, error));
+        }
+        return;
+    }
+
+    if (results[index] !== row) {
+        return;
+    }
+
+    row.loading = false;
+    refreshSlotButton(index);
+
+    if (!row.slots || row.slots.length < 2) {
+        document.getElementById("status").textContent =
+            row[0] + " chỉ có một " + (row.bank === "bidv" ? "lần công bố." : "khung giờ.");
+        return;
+    }
+
+    renderSlotMenu(index);
+}
+
+async function selectSlot(index, slotId) {
+    var row = results[index];
+    var previousBuy;
+    var previousSell;
+    var previousId;
+    var requestId;
+    var rate;
+
+    if (!row || row.loading) {
+        return;
+    }
+
+    if (row.slotId === slotId && row.slotConfirmed) {
+        refreshSlotMenuSelection(index);
+        return;
+    }
+
+    previousBuy = row[1];
+    previousSell = row[2];
+    previousId = row.slotId;
+    row.loading = true;
+    row.requestId = (row.requestId || 0) + 1;
+    requestId = row.requestId;
+    refreshSlotButton(index);
+    refreshSlotMenuSelection(index);
+
+    try {
+        rate = await fetchSlotRate(row.bank, row[0], slotId);
+    } catch (error) {
+        if (results[index] === row && row.requestId === requestId) {
+            row[1] = previousBuy;
+            row[2] = previousSell;
+            row.slotId = previousId;
+            row.loading = false;
+            paintRowValues(index);
+            refreshSlotButton(index);
+            refreshSlotMenuSelection(index);
+            window.alert(row[0] + ": " + readableSlotError(row.bank, error));
+        }
+        return;
+    }
+
+    if (results[index] !== row || row.requestId !== requestId) {
+        return;
+    }
+
+    row[1] = rate.buy;
+    row[2] = rate.sell;
+    row.slotId = slotId;
+    row.slotConfirmed = true;
+    row.loading = false;
+    paintRowValues(index);
+    refreshSlotButton(index);
+    refreshSlotMenuSelection(index);
+    document.getElementById("status").textContent =
+        row[0] + " — " + findSlotLabel(row.slots, slotId);
 }
 
 function updateMainProgress(current, total) {
@@ -986,6 +1592,7 @@ async function run() {
     setBankLocked(true);
     clearResultsTable();
     results = [];
+    slotCache = {};
 
     var cache = {};
     var errors = [];
@@ -1031,8 +1638,7 @@ async function run() {
             break;
         }
 
-        results.push([dateStr, rate.buy, rate.sell]);
-        addResultRow(dateStr, rate.buy, rate.sell);
+        pushResult(dateStr, rate);
         updateMainProgress(current, dates.length);
 
         if (!fromCache && index < dates.length - 1) {
@@ -1144,6 +1750,7 @@ function clearAll() {
     document.getElementById("progress").value = 0;
     document.getElementById("status").textContent = "Sẵn sàng";
     results = [];
+    slotCache = {};
 }
 
 window.addEventListener("load", function () {

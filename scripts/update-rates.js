@@ -181,14 +181,14 @@ function parseVtbPayload(text) {
 }
 
 async function postVtb(action, body) {
-    var response = await fetch("https://www.vietinbank.vn/ca-nhan/ty-gia-khcn", {
+    var response = await fetch("https://www.vietinbank.vn/ty-gia-khdn", {
         method: "POST",
         headers: {
             Accept: "text/x-component",
             "Content-Type": "text/plain;charset=UTF-8",
             "Next-Action": action,
             Origin: "https://www.vietinbank.vn",
-            Referer: "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
+            Referer: "https://www.vietinbank.vn/ty-gia-khdn",
             "User-Agent": UA
         },
         body: body,
